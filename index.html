@@ -442,4 +442,39 @@ if(!containers.items.querySelector('h2'))add('items',panel('🎒 アイテム・
 add('other',panel('⚙️ その他','ゲームの記録と遊び方。',[['育成記録','showRecords'],['あそびかた','openFarmTutorial']]));
 app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[activeTab])activeTab='training';mmSelectTab(activeTab);return result};
 })();
-</script></body></html>
+</script>
+<style>
+#mm-build-version{font-size:12px;color:#d5e4ee;white-space:nowrap;padding:4px 8px;border:1px solid #627785;border-radius:8px}
+</style>
+<script>
+/* UI patch 1.1.1: select Monster after every successful birth or activation. */
+(function(){
+'use strict';
+const UI_VERSION='1.1.1';
+function showVersion(){
+  let el=document.getElementById('mm-build-version');
+  if(!el){el=document.createElement('span');el.id='mm-build-version';
+    (document.querySelector('header .topbuttons')||document.querySelector('header')||document.body).appendChild(el);}
+  el.textContent='v'+UI_VERSION;
+}
+function openMonsterTab(){
+  if(typeof window.mmSelectTab==='function')window.mmSelectTab('monster');
+}
+function wrapSuccess(name){
+  const original=window[name];
+  if(typeof original!=='function')return;
+  window[name]=function(...args){
+    const previous=(typeof state!=='undefined'&&state&&state.monsters?.[state.active])?.id;
+    const result=original.apply(this,args);
+    const current=(typeof state!=='undefined'&&state&&state.monsters?.[state.active])?.id;
+    if(current!=null && (name==='start'||name==='thawMonster'||current!==previous)){
+      openMonsterTab();
+    }
+    return result;
+  };
+}
+['start','adopt','performFusion','thawMonster'].forEach(wrapSuccess);
+showVersion();
+})();
+</script>
+</body></html>
