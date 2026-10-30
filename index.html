@@ -135,7 +135,7 @@ function battlePanel(){if(!state||!state.monsters[state.active])return '';ensure
 const originalRender=render;
 render=function(){originalRender();if(state?.monsters[state.active]){const target=document.querySelector('#app .grid>div:last-child');if(target)target.insertAdjacentHTML('beforeend',battlePanel())}};
 function stopBattleClock(){if(battleTimer){clearInterval(battleTimer);battleTimer=null}}
-function startBattle(official){if(!state?.monsters[state.active]||battle)return;ensureBattleData();if(official&&!availableTournament())return;const m=state.monsters[state.active],d=state.battleData,rank=official?d.rank:Math.max(0,d.rank-1);const enemySpec=species[rand(0,species.length-1)];const strength=115+rank*125+rand(-15,30);const eStats=enemySpec.growth.map(x=>clamp(Math.round(strength*x+rand(-25,25)),50,950));battle={official,rank,enemy:{name:enemySpec.name,species:enemySpec.id,stats:eStats},hp:m.stats[0]+100,ehp:eStats[0]+100,maxhp:m.stats[0]+100,maxehp:eStats[0]+100,guts:50,eguts:45,time:90,distance:1,paused:false,logs:['試合開始！ 距離を調整して技を選ぼう。'],pendingSkill:null,finished:false,enemyCooldown:3,enemySkillIndex:0};if(official){d.lastTournamentWeek=state.week;save()}document.getElementById('modal').classList.add('wide');showBattle();battleTimer=setInterval(battleTick,1000)}
+function startBattle(official){if(!state?.monsters[state.active]||battle)return;ensureBattleData();if(official&&!availableTournament())return;const m=state.monsters[state.active],d=state.battleData,rank=official?d.rank:Math.max(0,d.rank-1);const enemySpec=species[rand(0,species.length-1)];const tournamentStrengthRanges=[[80,120],[150,190],[230,270],[320,360],[430,470],[550,590]];const [minStrength,maxStrength]=tournamentStrengthRanges[Math.max(0,Math.min(5,rank))];const strength=rand(minStrength,maxStrength);const eStats=enemySpec.growth.map(x=>clamp(Math.round(strength*x+rand(-25,25)),50,950));battle={official,rank,enemy:{name:enemySpec.name,species:enemySpec.id,stats:eStats},hp:m.stats[0]+100,ehp:eStats[0]+100,maxhp:m.stats[0]+100,maxehp:eStats[0]+100,guts:50,eguts:45,time:90,distance:1,paused:false,logs:['試合開始！ 距離を調整して技を選ぼう。'],pendingSkill:null,finished:false,enemyCooldown:3,enemySkillIndex:0};if(official){d.lastTournamentWeek=state.week;save()}document.getElementById('modal').classList.add('wide');showBattle();battleTimer=setInterval(battleTick,1000)}
 function battleTick(){if(!battle||battle.finished||battle.paused)return;battle.time=Math.max(0,battle.time-1);battle.guts=Math.min(100,battle.guts+5);battle.eguts=Math.min(100,battle.eguts+6);battle.enemyCooldown=Math.max(0,(battle.enemyCooldown??3)-1);if(battle.enemyCooldown===0)enemyTurn();if(battle.hp<=0||battle.ehp<=0||battle.time<=0){finishBattle();return}showBattle()}
 function battleLog(s){battle.logs.unshift(s);battle.logs=battle.logs.slice(0,7)}
 function gutsAttackMultiplier(g){return .8+.004*clamp(Number(g)||0,0,100)}
@@ -222,7 +222,7 @@ const oldSubmitAnswer=submitAnswer;submitAnswer=function(){const m=state?.monste
 
 </script><script>// Phase 4.0–4.5 additive, backward-compatible extension
 const subSpecies=[...species];
-const fourMajors=[{name:'星冠杯',reward:50000},{name:'月影杯',reward:60000},{name:'太陽杯',reward:70000},{name:'数式王杯',reward:90000}];
+const fourMajors=[{name:'星冠杯',reward:40000},{name:'月影杯',reward:40000},{name:'太陽杯',reward:40000},{name:'数式王杯',reward:40000}];
 const facilities=[{id:'gym',name:'育成場',cost:[3000,7500,16000],desc:'仕事の能力上昇を強化'},{id:'rest',name:'休養舎',cost:[2500,6500,14000],desc:'休養時の回復を強化'},{id:'lab',name:'数学研究所',cost:[3500,8500,18000],desc:'数学の正解ボーナスを強化'}];
 const expeditions=[{name:'数式の森',stat:2,fee:800,min:0},{name:'岩壁遺跡',stat:5,fee:1600,min:250},{name:'星空神殿',stat:3,fee:3000,min:450}];
 const rivals=[{name:'アオイ',species:'bolt',style:'命中重視'},{name:'レオン',species:'rock',style:'防御重視'},{name:'ミカ',species:'ghost',style:'回避重視'},{name:'カイ',species:'flare',style:'攻撃重視'}];
@@ -246,7 +246,7 @@ let expeditionPending=null;
 function beginExpedition(i){const x=expeditions[i];if(!state?.monsters[state.active]||state.money<x.fee)return;expeditionPending=i;question=makeQuestion(state.level);modal(`<h2>${x.name}：数学の仕掛け</h2><div class="question">${safe(question.txt)}</div><form id="expeditionForm"><input id="expeditionAnswer" type="text" inputmode="decimal" required placeholder="数値を入力"><button type="button" onclick="insertMinus('expeditionAnswer')">− マイナス</button><button type="submit">仕掛けを解く</button></form><button class="secondary" onclick="expeditionPending=null;closeModal()">キャンセル</button>`);document.getElementById('expeditionForm').onsubmit=e=>{e.preventDefault();finishExpedition()}}
 function finishExpedition(){if(expeditionPending===null||!question)return;const f=document.getElementById('expeditionAnswer'),n=parseMathNumber(f.value);if(!f.value.trim()||!Number.isFinite(n))return;phase4Init();const x=expeditions[expeditionPending],m=state.monsters[state.active],correct=Math.abs(n-question.ans)<1e-8;state.answers.total++;if(correct)state.answers.correct++;m.mathHistory.push({txt:question.txt,ans:question.ans,answer:n,correct,week:state.week,kind:'探検'});state.money-=x.fee;const success=Math.random()<clamp(.3+m.stats[x.stat]/1700+(correct?.24:0),.1,.95);let msg;if(success){const reward=rand(1100,2600)*(expeditionPending+1);state.money+=reward;msg=`探索成功！ ${reward}Gを発見。`;const find=`${x.name}の古代紋章`;if(!state.p4.discoveries.includes(find)){state.p4.discoveries.push(find);msg+=` 新発見「${find}」！`}}else msg='探索失敗。遺跡から帰還した。';m.fatigue=clamp(m.fatigue+25,0,100);m.stress=clamp(m.stress+12,0,100);for(let j=0;j<4&&state.monsters.includes(m);j++)advance();state.p4.expeditions++;log(msg);expeditionPending=null;question=null;save();modal(`<h2>探検結果</h2><p>${safe(msg)}</p><button onclick="closeModal();render()">戻る</button>`)}
 function showMajors(){phase4Init();const d=state.battleData||{rank:0};p4Modal('🏆 四大大会・殿堂',`<p>四大大会制覇：${state.p4.majors.length}/4　殿堂入り：${state.p4.hall.length}体</p><p class="small muted">Sランク到達で挑戦可能。公式大会と同じく月の第4週のみ。勝利で賞金と称号を獲得。</p>${fourMajors.map((x,i)=>`<div class="notice"><b>${x.name}</b> ${state.p4.majors.includes(x.name)?'🏅制覇済み':''}<br><small>賞金${x.reward}G</small><p><button onclick="startMajor(${i})" ${d.rank<5||!availableTournament()||!state.monsters[state.active]?'disabled':''}>挑戦</button></p></div>`).join('')}<h3>殿堂入り</h3>${state.p4.hall.map(x=>`<p>${safe(x.name)} / 合計能力${x.stats.reduce((a,b)=>a+b,0)}</p>`).join('')||'<p class="muted">まだいません。</p>'}`)}
-function startMajor(i){if(!state?.monsters[state.active]||state.battleData?.rank<5||!availableTournament())return;closeModal();startBattle(true);if(battle){battle.majorIndex=i;battle.enemy.stats=battle.enemy.stats.map(v=>clamp(Math.round(v*1.2),0,999));battle.enemy.name=fourMajors[i].name+' 王者';battle.ehp=battle.enemy.stats[0]+100;battle.maxehp=battle.ehp;showBattle()}}
+function startMajor(i){if(!state?.monsters[state.active]||state.battleData?.rank<5||!availableTournament())return;closeModal();startBattle(true);if(battle){battle.majorIndex=i;const majorMultipliers=[1.05,1.10,1.15,1.20];battle.enemy.stats=battle.enemy.stats.map(v=>clamp(Math.round(v*majorMultipliers[i]),0,999));battle.enemy.name=fourMajors[i].name+' 王者';battle.ehp=battle.enemy.stats[0]+100;battle.maxehp=battle.ehp;showBattle()}}
 function showFacilities(){phase4Init();p4Modal('🏡 ファーム施設拡張',`<p>所持金：${state.money}G</p>${facilities.map(f=>{const lv=state.p4.facilities[f.id]||0;return `<div class="notice"><b>${f.name} Lv.${lv}/3</b><br><small>${f.desc}</small><p><button onclick="upgradeFacility('${f.id}')" ${lv>=3||state.money<f.cost[lv]?'disabled':''}>${lv>=3?'最大レベル':f.cost[lv]+'Gで強化'}</button></p></div>`}).join('')}`)}
 function upgradeFacility(id){const f=facilities.find(x=>x.id===id),lv=state.p4.facilities[id]||0;if(!f||lv>=3||state.money<f.cost[lv])return;state.money-=f.cost[lv];state.p4.facilities[id]++;log(`${f.name}をLv.${lv+1}に強化した。`);save();showFacilities()}
 const p4OldRest=rest;rest=function(){if(state?.monsters[state.active]){phase4Init();const m=state.monsters[state.active],lv=state.p4.facilities.rest||0;m.fatigue=clamp(m.fatigue-lv*8,0,100);m.stress=clamp(m.stress-lv*4,0,100)}p4OldRest()};
@@ -290,6 +290,105 @@ const originalFinishBattleCalendar=finishBattle;
 finishBattle=function(forfeit=false){if(battle&&battle.majorIndex!==undefined){const b=battle;const won=!forfeit&&(b.ehp<=0||(b.hp>0&&b.time===0&&b.hp/b.maxhp>b.ehp/b.maxehp));if(won){ // Preserve the normal finish flow but remove the ordinary S prize afterward.
  const normalPrize=prizes[b.rank]||0;originalFinishBattleCalendar(forfeit);if(state){state.money=Math.max(0,state.money-normalPrize);save()}return;
  }}return originalFinishBattleCalendar(forfeit)};
+
+// === v1.2.1: individual major records and monthly Champions Cup ===
+const championCupPrize=50000;
+function cupData(m){
+ if(!m)return null;
+ if(!m.cupData){
+  const oldAchievements=Array.isArray(m.achievements)?m.achievements:[];
+  m.cupData={majors:fourMajors.filter(x=>oldAchievements.includes(x.name)).map(x=>x.name),wins:0,attempts:0,streak:0,bestStreak:0,firstWinAge:null,firstWinWeek:null};
+ }
+ const c=m.cupData;
+ c.majors=Array.isArray(c.majors)?c.majors:[];
+ for(const k of ['wins','attempts','streak','bestStreak'])c[k]=Number(c[k])||0;
+ return c;
+}
+function activeCup(){return cupData(state?.monsters?.[state.active]);}
+function nextPersonalMajor(){const c=activeCup();return c?fourMajors.findIndex(x=>!c.majors.includes(x.name)):-1;}
+function eligibleForCup(){const c=activeCup();return !!c&&fourMajors.every(x=>c.majors.includes(x.name));}
+function cupArchive(m){
+ if(!m||!state)return;
+ const c=cupData(m);if(!c||!c.wins)return;
+ state.cupHall??=[];
+ const entry={id:m.id,name:m.name,species:m.species,wins:c.wins,attempts:c.attempts,bestStreak:c.bestStreak,firstWinAge:c.firstWinAge,firstWinWeek:c.firstWinWeek,active:false};
+ const idx=state.cupHall.findIndex(x=>x.id===m.id);
+ if(idx>=0)state.cupHall[idx]=entry;else state.cupHall.push(entry);
+}
+const cupPreviousArchive=archive;
+archive=function(reason){const m=state?.monsters?.[state.active];if(m)cupArchive(m);cupPreviousArchive(reason);};
+function cupRanking(){
+ const all=new Map();
+ for(const x of state.cupHall||[])all.set(String(x.id),{...x,active:false});
+ for(const m of [...(state.monsters||[]),...(state.frozen||[])]){
+  const c=cupData(m);if(c?.wins)all.set(String(m.id),{id:m.id,name:m.name,species:m.species,wins:c.wins,attempts:c.attempts,bestStreak:c.bestStreak,firstWinAge:c.firstWinAge,firstWinWeek:c.firstWinWeek,active:true});
+ }
+ return [...all.values()].sort((a,b)=>b.wins-a.wins||b.bestStreak-a.bestStreak||(a.firstWinAge??Infinity)-(b.firstWinAge??Infinity)||(a.firstWinWeek??Infinity)-(b.firstWinWeek??Infinity));
+}
+function showCupRanking(){
+ const rows=cupRanking();
+ p4Modal('👑 歴代王者ランキング',`<p class="small muted">現役・冬眠中・引退済みの優勝者を掲載。優勝回数→最高連覇→初優勝年齢の順に順位を決定します。</p>${rows.length?rows.map((x,i)=>`<div class="notice"><b>${i+1}位 ${safe(x.name)}</b>（${safe(species.find(s=>s.id===x.species)?.name||x.species)}） ${x.active?'現役・保管中':'引退済み'}<br><small>通算${x.wins}勝 / 最高${x.bestStreak}連覇 / 初優勝${x.firstWinAge}週齢</small></div>`).join(''):'<p>チャンピオンズカップの優勝記録はまだありません。</p>'}`);
+}
+function cupTournamentPanel(){
+ const m=state?.monsters?.[state.active];if(!m)return '';
+ ensureBattleData();const c=activeCup(),i=nextPersonalMajor(),ready=availableTournament(),unlocked=majorUnlocked();
+ const majorHtml=i>=0&&unlocked?`<div class="rankline"><span>🏆 四大大会 第${i+1}戦：${safe(fourMajors[i].name)} / 40,000G</span><button onclick="startMajor(${i})" ${ready?'':'disabled'}>大会出場</button></div>`:'';
+ const cupHtml=eligibleForCup()?`<div class="rankline"><span>👑 チャンピオンズカップ / ${championCupPrize.toLocaleString()}G　通算${c.wins}勝・現在${c.streak}連覇</span><button onclick="startChampionsCup()" ${ready?'':'disabled'}>大会出場</button></div>`:`<p class="small muted">👑 チャンピオンズカップ：四大大会をこのモンスターで全制覇すると解放（${c.majors.length}/4）</p>`;
+ return `<section class="panel"><h2>🏆 大会・数学バトル</h2><p>現在の公式ランク：<b>${ranks[state.battleData.rank]}</b>　通算 ${state.battleData.wins}勝 ${state.battleData.losses}敗</p><p class="small muted">毎月第4週に1大会だけ出場可能。出場しない場合は通常どおり育成・休養できます。</p><div class="rankline"><span>公式大会：${ranks[state.battleData.rank]}ランク / 賞金${prizes[state.battleData.rank].toLocaleString()}G</span><button onclick="startBattle(true)" ${ready?'':'disabled'}>大会出場</button></div>${majorHtml}${cupHtml}<div class="rankline"><span>練習試合：報酬・週経過なし</span><button class="secondary" onclick="startBattle(false)">練習バトル</button></div><div class="rankline"><span>歴代王者ランキング</span><button class="secondary" onclick="showCupRanking()">記録を見る</button></div></section>`;
+}
+battlePanel=cupTournamentPanel;
+showMajors=function(){
+ const m=state?.monsters?.[state.active];const c=activeCup();if(!m||!c)return;
+ const i=nextPersonalMajor();
+ p4Modal('🏆 四大大会・殿堂',`<p>${safe(m.name)}の四大大会制覇：${c.majors.length}/4</p><p class="small muted">Sランク公式大会優勝後、順番に挑戦できます。制覇済みの大会には再出場できません。</p>${fourMajors.map((x,j)=>`<div class="notice">${c.majors.includes(x.name)?'🏅':j===i&&majorUnlocked()?'🔓':'🔒'} ${safe(x.name)} / 賞金40,000G　${c.majors.includes(x.name)?'制覇済み':j===i&&majorUnlocked()?'次の挑戦':'未解放'}</div>`).join('')}<p>${eligibleForCup()?'👑 チャンピオンズカップ参加資格獲得！':'👑 四大大会をすべて制覇するとチャンピオンズカップ解放'}</p><button onclick="showCupRanking()">歴代王者ランキング</button>`);
+};
+startMajor=function(i){
+ if(!state?.monsters?.[state.active]||!majorUnlocked()||i!==nextPersonalMajor()||!availableTournament()||battle)return;
+ closeModal();startBattle(true);
+ if(!battle)return;
+ battle.majorIndex=i;
+ const multipliers=[1.05,1.10,1.15,1.20];
+ battle.enemy.stats=battle.enemy.stats.map(v=>clamp(Math.round(v*multipliers[i]),0,999));
+ battle.enemy.name=fourMajors[i].name+' 王者';
+ battle.ehp=battle.enemy.stats[0]+100;battle.maxehp=battle.ehp;showBattle();
+};
+function startChampionsCup(){
+ if(!eligibleForCup()||!availableTournament()||battle)return;
+ startBattle(true);if(!battle)return;
+ battle.championsCup=true;
+ const sp=species[rand(0,species.length-1)],strength=rand(680,740);
+ battle.enemy={name:sp.name+' 王者',species:sp.id,stats:sp.growth.map(v=>clamp(Math.round(strength*v+rand(-25,25)),50,999))};
+ battle.ehp=battle.enemy.stats[0]+100;battle.maxehp=battle.ehp;showBattle();
+}
+const cupOldShowBattle=showBattle;
+showBattle=function(){cupOldShowBattle();if(!battle||battle.finished)return;const h=document.querySelector('#modal h2');if(h){if(battle.championsCup)h.textContent='👑 チャンピオンズカップ';else if(battle.majorIndex!==undefined)h.textContent='🏆 '+fourMajors[battle.majorIndex].name;}};
+// Replace old stacked settlement wrappers: single payout, single week advance, per-individual records.
+finishBattle=function(forfeit=false){
+ if(!battle||battle.finished)return;
+ stopBattleClock();battle.finished=true;
+ const b=battle,m=state?.monsters?.[state.active];if(!m){battle=null;return;}
+ const win=!forfeit&&(b.ehp<=0||(b.hp>0&&b.time===0&&b.hp/b.maxhp>b.ehp/b.maxehp));
+ const official=!!b.official,major=b.majorIndex!==undefined,cup=!!b.championsCup;
+ let prize=0,rankup=false;
+ if(official){
+  ensureBattleData();phase4Init();const d=state.battleData,c=cupData(m);
+  if(win){
+   d.wins++;m.battlesWon=(m.battlesWon||0)+1;
+   if(cup){prize=championCupPrize;c.wins++;c.attempts++;c.streak++;c.bestStreak=Math.max(c.bestStreak,c.streak);if(c.firstWinAge==null){c.firstWinAge=m.age;c.firstWinWeek=state.week;}}
+   else if(major){const t=fourMajors[b.majorIndex];prize=t.reward;if(!c.majors.includes(t.name))c.majors.push(t.name);m.achievements??=[];if(!m.achievements.includes(t.name))m.achievements.push(t.name);if(c.majors.length===4&&!state.p4.hall.some(x=>x.id===m.id))state.p4.hall.push({id:m.id,name:m.name,species:m.species,stats:[...m.stats],week:state.week});}
+   else{prize=prizes[b.rank];if(d.rank===b.rank&&d.rank<5){d.rank++;rankup=true;}else if(d.rank===5&&!d.champions.includes(m.name))d.champions.push(m.name);}
+   state.money+=prize;
+  }else{d.losses++;if(cup){c.attempts++;c.streak=0;}}
+  m.fatigue=clamp(m.fatigue+(win?12:18),0,100);
+  m.stress=clamp(m.stress+(win?-10:10),0,100);
+  log(`${cup?'チャンピオンズカップ':major?fourMajors[b.majorIndex].name:ranks[b.rank]+'ランク公式大会'}：${win?'勝利':'敗北'}${prize?'。賞金'+prize+'G':''}`);
+  advance(); // After applying fatigue/stress; exactly one weekly lifespan evaluation.
+ }else if(win&&b.rivalName){phase4Init();state.p4.rivalWins[b.rivalName]=(state.p4.rivalWins[b.rivalName]||0)+1;m.battlesWon=(m.battlesWon||0)+1;}
+ save();battle=null;question=null;
+ document.getElementById('modal').classList.remove('wide');
+ const title=cup?'チャンピオンズカップ':major?fourMajors[b.majorIndex].name:official?ranks[b.rank]+'ランク公式大会':'練習試合';
+ modal(`<h2>${win?'🏆 勝利！':'💥 敗北'}</h2><p>${safe(title)}：${safe(m.name)} ${win?'が勝利しました！':'は健闘しました。'}</p>${official?`<div class="notice">賞金：${prize.toLocaleString()}G${rankup?' / 次のランクに昇格！':''}<br>疲労 ${win?'+12':'+18'} / ストレス ${win?'−10':'+10'} / 1週経過</div>`:'<p class="muted">週・育成状態は変わりません。</p>'}<button onclick="closeModal();render()" style="width:100%">ファームに戻る</button>`);
+};
 
 // === Cross-device exhibition battles: isolated from official records and saves ===
 let qrGuest=null,qrDuel=null,qrDuelTimer=null;
@@ -447,10 +546,10 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 #mm-build-version{font-size:12px;color:#d5e4ee;white-space:nowrap;padding:4px 8px;border:1px solid #627785;border-radius:8px}
 </style>
 <script>
-/* UI patch 1.1.1: select Monster after every successful birth or activation. */
+/* UI patch 1.2.1: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.1.1';
+const UI_VERSION='1.2.1';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
