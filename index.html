@@ -4,7 +4,7 @@
 .battlebar{height:12px;background:#30444b;border-radius:12px;overflow:hidden;margin:6px 0}.battlebar>div{height:100%;background:#64c69b}.battlebar.enemy>div{background:#e37d6b}.arena{background:linear-gradient(#294653,#274c3d);border-radius:14px;padding:16px;text-align:center}.fighters{display:flex;justify-content:space-around;font-size:76px}.battlebuttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.battlebuttons button{font-size:14px}.battlefeed{max-height:110px;overflow:auto;font-size:13px;background:#142b35;padding:10px;border-radius:8px}.battle-top{display:grid;grid-template-columns:1fr 1fr;gap:14px}.rankline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0;padding:10px;background:#25424b;border-radius:9px}.modal.wide{width:min(100%,740px)}
 .skill-type{display:inline-block;border-radius:5px;padding:3px 7px;font-size:12px;font-weight:800;margin:4px 0}.skill-power{background:#8e4038;color:#fff0e9}.skill-wisdom{background:#255e93;color:#e9f7ff}.battlebuttons button{line-height:1.4}header .mathmon-brand{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.1;letter-spacing:.045em}header .mathmon-brand .mathmon-name{font-weight:900;font-size:clamp(19px,4vw,28px)}header .mathmon-brand .mathmon-champions{font-weight:900;font-size:clamp(14px,3vw,21px);color:#ffd36c}header .mathmon-brand small{font-size:11px;font-weight:500;letter-spacing:0;color:#d8e7f6;margin-top:4px}@media(max-width:520px){header .mathmon-brand small{font-size:10px}}
 </style><style>
-/* v1.2.3: compact fatigue/stress indicators in the Rest section. */
+/* v1.2.4: compact fatigue/stress indicators in the Rest section. */
 .mm-rest-condition{background:#1b3040;border-radius:9px;padding:10px 12px;display:grid;gap:9px;margin:0 0 12px}
 .mm-rest-condition-row{display:flex;align-items:center;gap:9px;min-width:0}
 .mm-rest-label{flex:0 0 64px;font-size:13px;font-weight:700;white-space:nowrap}
@@ -451,7 +451,7 @@ function setFarmSkill(range){const m=state?.monsters[state.active],el=document.g
 function secretInventory(){if(!state)return {};ensureExtras();return state.inventory}
 function scrollPanel(m){const inv=secretInventory();return `<h3>📜 冒険の秘伝書</h3><p class="small muted">冒険成功時に低確率で発見。能力条件を満たすと、秘伝書と600Gを使い1週間の特別修行で習得できます。</p>${secretScrolls.map(x=>`<div class="notice"><b>${x.name}</b>　所持${inv[x.id]||0}冊<br><small>${x.desc} / 必要能力：${names[x.stat]} ${x.min}（現在${m.stats[x.stat]}）</small><p><button onclick="learnSecretSkill('${x.id}')" ${(inv[x.id]||0)<1||m.unlockedSkills.includes(x.skill)||m.stats[x.stat]<x.min||state.money<600?'disabled':''}>${m.unlockedSkills.includes(x.skill)?'習得済み':'特別修行（600G・1週間）'}</button></p></div>`).join('')}`}
 function learnSecretSkill(id){const x=secretScrolls.find(z=>z.id===id),m=state?.monsters[state.active],inv=secretInventory();if(!x||!m||!(inv[id]>0)||m.unlockedSkills.includes(x.skill)||m.stats[x.stat]<x.min||state.money<600)return;if(!confirm(`${x.name}を消費し、600G・1週間で${battleSkills[x.skill].name}を習得しますか？`))return;inv[id]--;state.money-=600;m.unlockedSkills.push(x.skill);m.fatigue=clamp(m.fatigue+10,0,100);log(`${m.name}は秘伝書から「${battleSkills[x.skill].name}」を習得！`);advance();save();showSkills();render()}
-showSkills=function(){const m=state?.monsters[state.active];if(!m)return;const slots=skillSlots(m);modal(`<h2>📖 技図鑑・技セット</h2><p>距離ごとに技を1つ装備します。ちから技・かしこさ技の制限はありません。装備を外しても使用回数と習得状況は残ります。</p>${['近距離','中距離','遠距離'].map((name,r)=>`<div class="notice"><label for="farmSlot${r}">${name}（1枠）</label><select id="farmSlot${r}" onchange="setFarmSkill(${r})">${m.unlockedSkills.filter(i=>battleSkills[i]?.range===r).map(i=>`<option value="${i}" ${slots[r]===i?'selected':''}>${safe(speciesSkillName(m,battleSkills[i]))} / ${skillType(battleSkills[i])} / G${battleSkills[i].cost}</option>`).join('')}</select></div>`).join('')}<h3>習得済み・未習得技</h3>${battleSkills.map((sk,i)=>`<div class="notice"><b>${safe(speciesSkillName(m,sk))}</b> ${skillBadge(sk)} / ${['近','中','遠'][sk.range]}距離<br><small>威力${speciesSkillStats(m,sk).power} / 命中${speciesSkillStats(m,sk).accuracy} / G${sk.cost} / ${skillEffectLabel(sk)} / ${m.unlockedSkills.includes(i)?'習得済み':'未習得'} / 使用${m.skillUses?.[i]||0}回</small></div>`).join('')}${scrollPanel(m)}<button onclick="closeModal()">閉じる</button>`)};
+showSkills=function(){const m=state?.monsters[state.active];if(!m)return;const slots=skillSlots(m);modal(`<h2>📖 技図鑑・技セット</h2><p>距離ごとに技を1つ装備します。ちから技・かしこさ技の制限はありません。装備を外しても使用回数と習得状況は残ります。</p>${['近距離','中距離','遠距離'].map((name,r)=>`<div class="notice"><label for="farmSlot${r}">${name}（1枠）</label><select id="farmSlot${r}" onchange="setFarmSkill(${r})">${m.unlockedSkills.filter(i=>battleSkills[i]?.range===r).map(i=>`<option value="${i}" ${slots[r]===i?'selected':''}>${safe(speciesSkillName(m,battleSkills[i]))} / ${skillType(battleSkills[i])} / G${battleSkills[i].cost}</option>`).join('')}</select></div>`).join('')}<h3>習得済み・未習得技</h3>${battleSkills.map((sk,i)=>`<div class="notice"><b>${safe(speciesSkillName(m,sk))}</b> ${skillBadge(sk)} / ${['近','中','遠'][sk.range]}距離<br><small>威力${speciesSkillStats(m,sk).power} / 命中${speciesSkillStats(m,sk).accuracy} / G${sk.cost} / ${skillEffectLabel(sk)} / ${m.unlockedSkills.includes(i)?'習得済み':'未習得'} / 使用${m.skillUses?.[i]||0}回</small></div>`).join('')}${scrollPanel(m)}<button class="mm-skill-close" onclick="closeModal()">閉じる</button>`)};
 const secretOldBattleShow=showBattle;
 showBattle=function(){secretOldBattleShow();if(!battle||battle.finished)return;const m=state?.monsters[state.active],slots=skillSlots(m),buttons=document.querySelector('.battlebuttons');if(!buttons)return;buttons.innerHTML=slots.map((i,r)=>{if(i===null)return `<button disabled>${['近','中','遠'][r]}距離：未セット</button>`;const sk=battleSkills[i],t=speciesSkillStats(m,sk);return `<button onclick="useSkill(${i})" ${r!==battle.distance||battle.guts<sk.cost?'disabled':''}>${safe(t.name)}<br>${skillBadge(sk)}<br><small>G${sk.cost} / 威力${t.power} / 命中${t.accuracy>=0?'+':''}${t.accuracy} / ${skillEffectLabel(sk)}</small></button>`}).join('')};
 const secretOldUse=useSkill;
@@ -557,10 +557,10 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 #mm-build-version{font-size:12px;color:#d5e4ee;white-space:nowrap;padding:4px 8px;border:1px solid #627785;border-radius:8px}
 </style>
 <script>
-/* UI patch 1.2.3: select Monster after every successful birth or activation. */
+/* UI patch 1.2.4: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.2.3';
+const UI_VERSION='1.2.4';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
@@ -631,4 +631,34 @@ wrap('useSkill','battleAnswer','answerBattle');
 wrap('beginTraining','trainingAnswer','finishTraining');
 wrap('beginExpedition','expeditionAnswer','finishExpedition');
 })();
-</script></body></html>
+</script>
+<style>
+/* v1.2.4: iOS modal safe region. Mobile nav remains visible but never covers the modal. */
+.overlay{z-index:40;box-sizing:border-box;min-height:0}
+.modal{box-sizing:border-box;min-height:0;max-height:100%;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.mm-skill-close{display:block;position:sticky;bottom:0;width:100%;z-index:2;margin-top:14px;box-shadow:0 -8px 16px #203943}
+@media(max-width:760px){
+  .overlay{top:0;bottom:var(--mm-mobile-nav-height,136px);height:auto;padding:12px 12px 10px;align-items:center}
+  .modal{max-height:100%;padding:18px 16px;overflow-y:auto;overflow-x:hidden}
+}
+</style>
+<script>
+/* Measure actual nav height (including iOS safe area) rather than assuming a device size. */
+(function(){
+  function updateModalSpace(){
+    const nav=document.querySelector('.mm-nav');
+    const mobile=window.matchMedia('(max-width:760px)').matches;
+    if(!mobile||!nav){document.documentElement.style.removeProperty('--mm-mobile-nav-height');return;}
+    const box=nav.getBoundingClientRect();
+    document.documentElement.style.setProperty('--mm-mobile-nav-height',Math.max(0,Math.ceil(window.innerHeight-box.top))+'px');
+  }
+  window.addEventListener('resize',updateModalSpace,{passive:true});
+  window.addEventListener('orientationchange',updateModalSpace,{passive:true});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',updateModalSpace,{passive:true});
+  const observer=new MutationObserver(updateModalSpace);
+  observer.observe(document.getElementById('app'),{childList:true,subtree:false});
+  updateModalSpace();
+  window.addEventListener('load',updateModalSpace,{once:true});
+})();
+</script>
+</body></html>
