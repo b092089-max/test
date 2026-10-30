@@ -390,4 +390,38 @@ const original=window.start;
 window.start=function(...args){const wasNew=!window.state;const result=original.apply(this,args);if(wasNew&&window.state){let seen=false;try{seen=localStorage.getItem(KEY)==='1'}catch(e){}if(!seen)open()}return result};
 }
 })();
+</script><style>
+/* Five-area navigation: mobile bottom bar and desktop sidebar */
+#app.mm-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:start}
+.mm-nav{position:sticky;top:12px;display:flex;flex-direction:column;gap:6px;background:#172642;border:1px solid #40516c;border-radius:14px;padding:10px;z-index:5}
+.mm-nav button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:13px 10px;border-radius:9px;background:transparent;color:#e5edff;border:0;cursor:pointer;font-weight:700}
+.mm-nav button.mm-selected{background:#3a65b4;color:white}
+.mm-pages{min-width:0}.mm-page{display:none}.mm-page.mm-active{display:block}
+.mm-page>.panel{margin-bottom:14px}.mm-page .grid{display:block}.mm-page .grid>div{min-width:0}
+.mm-page .grid .panel{margin-bottom:14px}
+.mm-page h2{margin-top:0}.mm-quick{display:flex;flex-wrap:wrap;gap:8px}
+.mm-quick button{flex:1 1 145px}.mm-page .panel{min-width:0}
+@media(max-width:760px){#app.mm-layout{display:block;padding-bottom:78px}.mm-nav{position:fixed;top:auto;bottom:0;left:0;right:0;border-radius:12px 12px 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px 4px max(6px,env(safe-area-inset-bottom));box-shadow:0 -4px 22px #0006;z-index:20}.mm-nav button{display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:10px;text-align:center;padding:8px 0;min-width:0}.mm-nav button .mm-ico{font-size:21px}.mm-pages{width:100%}}
+</style>
+<script>
+/* UI-only navigation. The original game handlers, data and save format remain unchanged. */
+(function(){
+let activeTab='home';
+const tabs=[['home','🏠','ホーム'],['battle','⚔️','バトル'],['adventure','🗺️','冒険'],['ranch','🧬','育成所'],['other','☰','その他']];
+window.mmSelectTab=function(id){activeTab=id;document.querySelectorAll('.mm-page').forEach(x=>x.classList.toggle('mm-active',x.dataset.tab===id));document.querySelectorAll('.mm-nav button').forEach(x=>{const yes=x.dataset.tab===id;x.classList.toggle('mm-selected',yes);x.setAttribute('aria-current',yes?'page':'false')});window.scrollTo?.({top:0,behavior:'instant'})};
+const previousRender=window.render;
+window.render=function(...args){const result=previousRender.apply(this,args);const app=document.getElementById('app');if(!app||!window.state||!state.monsters?.[state.active])return result;
+const original=app.querySelector('.grid');if(!original)return result;
+const panels=[...original.querySelectorAll('section.panel')];
+const nav=document.createElement('nav');nav.className='mm-nav';nav.setAttribute('aria-label','メインメニュー');nav.innerHTML=tabs.map(([id,ico,label])=>`<button type="button" data-tab="${id}" onclick="mmSelectTab('${id}')"><span class="mm-ico">${ico}</span><span>${label}</span></button>`).join('');
+const pages=document.createElement('div');pages.className='mm-pages';const containers={};tabs.forEach(([id,_,label])=>{const page=document.createElement('div');page.className='mm-page';page.dataset.tab=id;page.setAttribute('aria-label',label);containers[id]=page;pages.appendChild(page)});
+function add(id,node){containers[id].appendChild(node)}
+function panel(title,description,buttons){const section=document.createElement('section');section.className='panel';section.innerHTML=`<h2>${title}</h2>${description?`<p class="small muted">${description}</p>`:''}<div class="mm-quick">${buttons.map(([label,handler])=>`<button type="button" class="secondary" onclick="${handler}">${label}</button>`).join('')}</div>`;return section}
+for(const el of panels){const h=el.querySelector('h2')?.textContent||'';
+if(h.includes('ファームの冒険')){add('adventure',panel('🗺️ 探索・冒険','季節の探索、秘伝書や隠された発見を探します。',[['探索に出る','showExpedition()']]));add('ranch',panel('🧬 合体・継承','次世代のモンスターを育てます。',[['合体する','showFusion()']]));add('battle',panel('🏆 四大大会・ライバル','強敵との戦いに挑戦します。',[['四大大会','showMajors()'],['ライバル','showRivals()']]));add('other',panel('🏡 施設・記録・研究','ファームを発展させ、記録を確認します。',[['施設拡張','showFacilities()'],['育成助手','showAssistant()'],['図鑑・記録','showBestiary()'],['数学研究所','showMathLab()']]));el.remove();continue}
+let id='home';if(h.includes('大会・数学バトル')||h.includes('別端末モンスター対戦')||h.includes('技の装備・秘伝書'))id='battle';else if(h.includes('修行・技の習得')||h.includes('冬眠と育成方針'))id='ranch';else if(h.includes('ショップ・持ち物'))id='home';else if(h.includes('ファームの記録'))id='other';add(id,el)}
+// Keep the original game state/stat panel at the start of the home screen.
+const stat=containers.home.querySelector('section.panel');if(stat&&stat.querySelector('.ranch'))containers.home.prepend(stat);
+app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[activeTab])activeTab='home';mmSelectTab(activeTab);return result};
+})();
 </script></body></html>
