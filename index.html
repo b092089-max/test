@@ -347,4 +347,46 @@ const secretOldFinishExpedition=finishExpedition;
 finishExpedition=function(){const index=expeditionPending,m=state?.monsters[state.active],before=state?.logs?.length||0;secretOldFinishExpedition();if(index===null||!state||!m)return;const fresh=state.logs.slice(before).join(' ');if(!fresh.includes('探索成功'))return;const pool=secretScrolls.filter(x=>x.area===index);if(!pool.length||Math.random()>=.25)return;const item=pool[Math.floor(Math.random()*pool.length)];const inv=secretInventory();inv[item.id]=(inv[item.id]||0)+1;log(`📜 冒険で「${item.name}」を発見！ 技図鑑から特別修行できます。`);save();const el=document.querySelector('.modal');if(el)el.insertAdjacentHTML('beforeend',`<div class="notice">📜 追加報酬：${item.name}！</div>`)};
 const secretOldRender=render;
 render=function(){secretOldRender();if(!state?.monsters[state.active])return;const root=document.querySelector('#app .grid>div:last-child');if(root)root.insertAdjacentHTML('beforeend',`<section class="panel"><h2>⚔️ 技の装備・秘伝書</h2><p class="small muted">近・中・遠距離に各1技をセット。冒険で見つけた秘伝書から特殊技を習得できます。</p><button onclick="showSkills()">技をセット・秘伝書を確認</button></section>`)};
+</script><style>
+#farmGuideLaunch{background:#255e93;color:white;border:1px solid #86baf0;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+#farmGuideOverlay{position:fixed;inset:0;z-index:99999;background:rgba(9,17,33,.79);display:none;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
+#farmGuideOverlay.open{display:flex}
+#farmGuideCard{background:#fff;color:#172338;width:min(100%,550px);max-height:90dvh;overflow-y:auto;border-radius:18px;padding:23px;box-sizing:border-box;box-shadow:0 18px 60px #0007}
+#farmGuideCard h2{margin:8px 0 12px;color:#17375e}#farmGuideCard p{line-height:1.8}#farmGuideCard .guideTag{color:#32699b;font-size:13px;font-weight:800}
+#farmGuideCard .guideInfo{background:#edf5ff;border-left:4px solid #3985c4;border-radius:8px;padding:11px 13px;line-height:1.7;margin:12px 0}
+#farmGuideCard .guideNav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}#farmGuideCard .guideNav button{flex:1;min-width:90px;padding:12px;border-radius:9px;cursor:pointer}
+#farmGuideCard .guideDots{display:flex;gap:5px;margin:12px 0}#farmGuideCard .guideDots i{height:5px;flex:1;background:#d7e1ed;border-radius:10px}#farmGuideCard .guideDots i.on{background:#2375b9}
+</style><script>
+/* First-play guide: independent from game save data and battle state. */
+(function(){
+'use strict';
+const KEY='math_monster_farm_tutorial_v1';
+const steps=[
+{title:'数式モンスターファームへようこそ！',body:'このゲームでは、数学問題を解きながらモンスターを育て、大会の頂点を目指します。育成には寿命があり、仕事・休養・大会のバランスが大切です。',tip:'最初は「仕事 → 休養 → 大会」の流れを覚えれば大丈夫です。'},
+{title:'① モンスターを育てよう',body:'「今週の育成」から仕事を選ぶと数学問題が出ます。正解すると成長ボーナスが得られます。仕事をすると1週間が経過し、能力と疲労が変化します。',tip:'ちから・かしこさ・命中・回避・丈夫さなど、モンスターの得意能力を中心に伸ばしましょう。'},
+{title:'② 疲労とストレスに注意',body:'仕事を続けると疲労やストレスが増えます。「休養」や「おやつ」を使って調整しましょう。モンスターには寿命があり、無理をさせると寿命が余計に減ります。',tip:'疲労・ストレスが65を超える前に休ませるのが基本です。'},
+{title:'③ 数学問題の答え方',body:'問題の答えを数字で入力します。負の数のときは「−」ボタンを利用できます。数学問題に回答している間、バトルの試合時間は止まります。',tip:'難易度は変更できます。難しすぎる場合は「数学レベル変更」を使ってください。'},
+{title:'④ 大会とガッツ',body:'大会では数学問題に正解して技を出します。ガッツは技の使用に必要で、残量が多いほど攻撃・防御・命中が少し有利になります。技には距離と消費ガッツがあります。',tip:'最初はガッツをため、使える距離の技を選ぶことを意識しましょう。'},
+{title:'⑤ 技をセットしよう',body:'「技をセット・秘伝書を確認」から、近距離・中距離・遠距離にそれぞれ1つずつ技をセットできます。ちから技・かしこさ技のどちらでも選べます。',tip:'新しい技を覚えたら、技セットを確認しましょう。セットから外しても習得情報は消えません。'},
+{title:'⑥ 季節の冒険と秘伝書',body:'冒険は決まった月に開催されます。推奨能力と現在能力、報酬、疲労などの注意点を確認して参加しましょう。冒険で見つけた秘伝書は、条件を満たすと特別な技の習得に使えます。',tip:'冒険に出る前に、推奨能力と疲労・ストレスを必ず確認しましょう。'},
+{title:'⑦ 大会を勝ち進もう',body:'通常大会でランクを上げ、Sランク大会で優勝すると四大大会が順番に解放されます。四大大会も通常の大会出場画面から参加します。',tip:'「次の目標」には育成状況に応じた目標が表示されます。'},
+{title:'⑧ 合体・QR対戦でさらに楽しもう',body:'育てたモンスターは合体に利用でき、親の能力が子の初期能力に一部引き継がれます。QR対戦では別端末のモンスターを読み込み、AI対戦や自分で操作する対戦を楽しめます。',tip:'合体後の成長適性は親のメイン種族の基本適性を80:20で参照し、世代ごとに累積しません。'},
+{title:'準備完了！',body:'まずは仕事で能力を伸ばし、疲れたら休養。技をセットして大会に挑戦しましょう。分からなくなったら、画面上部の「📖 あそびかた」からいつでも読み直せます。',tip:'ゲームのセーブデータとは別にチュートリアルの閲覧状況だけを保存します。'}
+];
+let index=0;
+function guide(){return document.getElementById('farmGuideOverlay')}
+function draw(){const el=document.getElementById('farmGuideCard');if(!el)return;const s=steps[index];el.innerHTML='<div class="guideTag">はじめての人向けガイド　'+(index+1)+' / '+steps.length+'</div><div class="guideDots">'+steps.map((_,i)=>'<i class="'+(i<=index?'on':'')+'"></i>').join('')+'</div><h2>'+s.title+'</h2><p>'+s.body+'</p><div class="guideInfo">💡 '+s.tip+'</div><div class="guideNav"><button type="button" class="secondary" id="farmGuideSkip">閉じる</button>'+(index?'<button type="button" class="secondary" id="farmGuideBack">戻る</button>':'')+'<button type="button" id="farmGuideNext">'+(index===steps.length-1?'完了して遊ぶ':'次へ →')+'</button></div>';
+document.getElementById('farmGuideSkip').onclick=close;const back=document.getElementById('farmGuideBack');if(back)back.onclick=()=>{index--;draw()};document.getElementById('farmGuideNext').onclick=()=>{if(index<steps.length-1){index++;draw()}else close()};}
+function open(){index=0;guide().classList.add('open');guide().setAttribute('aria-hidden','false');draw();}
+function close(){guide().classList.remove('open');guide().setAttribute('aria-hidden','true');try{localStorage.setItem(KEY,'1')}catch(e){}}
+window.openFarmTutorial=open;
+const overlay=document.createElement('div');overlay.id='farmGuideOverlay';overlay.setAttribute('aria-hidden','true');overlay.innerHTML='<div id="farmGuideCard" role="dialog" aria-modal="true" aria-label="あそびかた"></div>';document.body.appendChild(overlay);
+const btn=document.createElement('button');btn.type='button';btn.id='farmGuideLaunch';btn.textContent='📖 あそびかた';btn.onclick=open;
+(document.querySelector('header .topbuttons')||document.querySelector('header')||document.body).prepend(btn);
+// New games only: show after the first monster is created; never interrupt returning players.
+if(typeof window.start==='function'){
+const original=window.start;
+window.start=function(...args){const wasNew=!window.state;const result=original.apply(this,args);if(wasNew&&window.state){let seen=false;try{seen=localStorage.getItem(KEY)==='1'}catch(e){}if(!seen)open()}return result};
+}
+})();
 </script></body></html>
