@@ -425,7 +425,7 @@ window.modal=function(html){
   btn.onclick=()=>{closeModal();};el.appendChild(btn);
 };
 const previousRender=window.render;
-window.render=function(...args){const result=previousRender.apply(this,args);const app=document.getElementById('app');if(!app||!window.state||!state.monsters?.[state.active])return result;
+window.render=function(...args){const result=previousRender.apply(this,args);const app=document.getElementById('app');if(!app||typeof state==='undefined'||!state||!state.monsters?.[state.active])return result;
 const original=app.querySelector('.grid');if(!original)return result;
 const panels=[...original.querySelectorAll('section.panel')];
 const nav=document.createElement('nav');nav.className='mm-nav';nav.setAttribute('aria-label','メインメニュー');nav.innerHTML=tabs.map(([id,ico,label])=>`<button type="button" data-tab="${id}" onclick="mmSelectTab('${id}')"><span class="mm-ico">${ico}</span><span>${label}</span></button>`).join('');
