@@ -560,7 +560,7 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 /* UI patch 1.2.6: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.2.6';
+const UI_VERSION='1.2.7';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
@@ -708,6 +708,61 @@ function mathmonBattleHitProbability(attacker, defender, skill, attackGuts) {
     if(typeof window.render==='function')window.render();
     return result;
   };
+})();
+</script>
+<script>
+/* v1.2.7: Once-only, reload-safe end-of-life farewell. */
+(function(){
+ const priorArchive=window.archive;
+ window.archive=function(reason){
+   const m=state?.monsters?.[state.active];
+   if(m&&reason==='寿命を迎えた'){
+     const cup=m.cup||m.championsCup||{};
+     const rec={name:m.name,species:spec(m).name,icon:spec(m).icon,
+       age:m.age,stats:[...m.stats],total:m.stats.reduce((a,b)=>a+b,0),
+       generation:m.generation||1,wins:m.battlesWon||0,
+       achievements:Array.isArray(m.achievements)?[...m.achievements]:[],
+       cupWins:cup.wins||0};
+     state.pendingFarewell=rec;
+   }
+   return priorArchive.apply(this,arguments);
+ };
+ const priorRender=window.render;
+ window.render=function(){
+   const result=priorRender.apply(this,arguments);
+   if(state?.pendingFarewell)showLifeFarewell();
+   return result;
+ };
+ window.showLifeFarewell=function(){
+   const r=state?.pendingFarewell;if(!r)return;
+   const top=r.stats.map((v,i)=>({label:names[i],value:v})).sort((a,b)=>b.value-a.value).slice(0,3);
+   const years=Math.floor(r.age/48),months=Math.floor((r.age%48)/4);
+   const honors=r.achievements.length?r.achievements.map(x=>safe(x)).join('・'):'これからも記録に残る大切な仲間';
+   modal(`<div style="text-align:center;padding:8px 0 14px">
+      <div style="font-size:58px;line-height:1.3">🌠 ${safe(r.icon)}</div>
+      <h2>ありがとう、${safe(r.name)}</h2>
+      <p>${safe(r.name)}は長い育成の日々を終え、静かに寿命を迎えました。</p>
+      <p class="muted">ともに過ごした時間と、残した記録はファームの歴史に刻まれます。</p>
+     </div>
+     <div class="notice"><b>🌟 最後の育成記録</b><br>
+       ${safe(r.species)} / 第${r.generation}世代<br>
+       育成年齢：${years}歳${months}か月（${r.age}週）<br>
+       最終能力合計：<b>${r.total}</b><br>
+       得意な能力：${top.map(x=>safe(x.label)+' '+x.value).join(' / ')}<br>
+       勝利数：${r.wins}回${r.cupWins?' / チャンピオンズカップ '+r.cupWins+'勝':''}<br>
+       大会実績：${honors}
+     </div>
+     <p style="text-align:center">${safe(r.name)}、本当にお疲れさま。<br>たくさんの思い出をありがとう。</p>
+     <button style="width:100%" onclick="finishLifeFarewell()">思い出を胸に、次へ進む</button>`);
+ };
+ window.finishLifeFarewell=function(){
+   if(!state?.pendingFarewell)return;
+   delete state.pendingFarewell;
+   save();closeModal();render();
+ };
+ // The farewell remains available after a reload until acknowledged.
+ const priorInit=window.init;
+ window.init=function(){const result=priorInit.apply(this,arguments);if(state?.pendingFarewell)showLifeFarewell();return result;};
 })();
 </script>
 </body></html>
