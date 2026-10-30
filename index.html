@@ -15,9 +15,22 @@
 .mm-rest-warning-text{color:#ffab93}
 </style>
 </head><body><header><h1 class="mathmon-brand"><span class="mathmon-name">MATHMON</span><span class="mathmon-champions">CHAMPIONS</span><small>育てて、解いて、頂点へ！</small></h1><div class="topbuttons"><button class="secondary" onclick="save(true)">保存</button><button class="secondary" onclick="exportSave()">バックアップ</button><button class="secondary" onclick="document.getElementById('importFile').click()">読込</button><input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importSave(event)"></div></header><main class="wrap"><div id="app"></div></main><footer>ブラウザに自動保存されます。バックアップファイルも定期的に保存してください。</footer><div id="overlay" class="overlay hidden"><div id="modal" class="modal"></div></div><script>
-'use strict';const KEY='mathMonsterFarm.phase1.v1';const species=[{id:'flare',name:'フレアドラゴン',icon:'🐲',type:'ちから型',growth:[1.1,1.35,.65,.9,.85,1],life:180},{id:'aqua',name:'アクアドラゴン',icon:'🐉',type:'かしこさ型',growth:[1, .75,1.4,1.1,.95,.8],life:192},{id:'rock',name:'ロックゴーレム',icon:'🗿',type:'丈夫さ型',growth:[1.2,1.15,.65,.7,.55,1.5],life:205},{id:'leaf',name:'リーフィー',icon:'🌱',type:'長寿型',growth:[1.2,.7,1.2,.95,1.1,.9],life:230},{id:'ghost',name:'ファントム',icon:'👻',type:'回避型',growth:[.7,.75,1.25,1.2,1.5,.55],life:185},{id:'bolt',name:'ボルトフォックス',icon:'🦊',type:'命中型',growth:[.9,1.05,1,1.5,1.3,.65],life:180}];const names=['ライフ','ちから','かしこさ','命中','回避','丈夫さ'];const jobs=[{name:'走り込み',stat:0,stress:4,fatigue:10,desc:'ライフを伸ばす軽仕事'},{name:'重り運び',stat:1,stress:5,fatigue:10,desc:'ちからを伸ばす軽仕事'},{name:'数学研究',stat:2,stress:4,fatigue:10,desc:'かしこさを伸ばす軽仕事'},{name:'的当て',stat:3,stress:5,fatigue:10,desc:'命中を伸ばす軽仕事'},{name:'障害物回避',stat:4,stress:5,fatigue:10,desc:'回避を伸ばす軽仕事'},{name:'岩運び',stat:5,stress:6,fatigue:10,desc:'丈夫さを伸ばす軽仕事'},{name:'高速計算',stat:3,other:2,heavy:true,stress:13,fatigue:20,desc:'命中・かしこさを大きく伸ばす'},{name:'数式特訓',stat:2,other:1,heavy:true,stress:14,fatigue:20,desc:'かしこさ・ちからを大きく伸ばす'},{name:'高速障害物訓練',stat:4,other:3,heavy:true,stress:14,fatigue:20,desc:'回避を大きく・命中も伸ばす重仕事'},{name:'鉄壁防御訓練',stat:5,other:0,heavy:true,stress:15,fatigue:20,desc:'丈夫さを大きく・ライフも伸ばす重仕事'}];let state=null;let pending=null;let selected=0;let question=null;let locked=false;
+'use strict';const KEY='mathMonsterFarm.phase1.v1';const species=[{id:'flare',name:'フレアドラゴン',icon:'🐲',type:'ちから型',growth:[1.1,1.35,.65,.9,.85,1],life:180},{id:'aqua',name:'アクアドラゴン',icon:'🐉',type:'かしこさ型',growth:[1, .75,1.4,1.1,.95,.8],life:192},{id:'rock',name:'ロックゴーレム',icon:'🗿',type:'丈夫さ型',growth:[1.2,1.15,.65,.7,.55,1.5],life:205},{id:'leaf',name:'リーフィー',icon:'🌱',type:'長寿型',growth:[1.2,.7,1.2,.95,1.1,.9],life:230},{id:'ghost',name:'ファントム',icon:'👻',type:'回避型',growth:[.7,.75,1.25,1.2,1.5,.55],life:185},{id:'bolt',name:'ボルトフォックス',icon:'🦊',type:'命中型',growth:[.9,1.05,1,1.5,1.3,.65],life:180}];const names=['ライフ','ちから','かしこさ','命中','回避','丈夫さ'];const jobs=[{name:'走り込み',stat:0,stress:4,fatigue:10,desc:'ライフを伸ばす軽仕事'},{name:'重り運び',stat:1,stress:5,fatigue:10,desc:'ちからを伸ばす軽仕事'},{name:'数学研究',stat:2,stress:4,fatigue:10,desc:'かしこさを伸ばす軽仕事'},{name:'的当て',stat:3,stress:5,fatigue:10,desc:'命中を伸ばす軽仕事'},{name:'障害物回避',stat:4,stress:5,fatigue:10,desc:'回避を伸ばす軽仕事'},{name:'岩運び',stat:5,stress:6,fatigue:10,desc:'丈夫さを伸ばす軽仕事'},{name:'極限持久走',stat:0,other:5,heavy:true,stress:14,fatigue:20,desc:'ライフを大きく・丈夫さも伸ばす重仕事'},{name:'超重量運搬',stat:1,other:0,heavy:true,stress:14,fatigue:20,desc:'ちからを大きく・ライフも伸ばす重仕事'},{name:'高速計算',stat:2,other:3,heavy:true,stress:13,fatigue:20,desc:'かしこさを大きく・命中も伸ばす重仕事'},{name:'精密射撃訓練',stat:3,other:4,heavy:true,stress:14,fatigue:20,desc:'命中を大きく・回避も伸ばす重仕事'},{name:'高速障害物訓練',stat:4,other:2,heavy:true,stress:14,fatigue:20,desc:'回避を大きく・かしこさも伸ばす重仕事'},{name:'鉄壁防御訓練',stat:5,other:1,heavy:true,stress:15,fatigue:20,desc:'丈夫さを大きく・ちからも伸ばす重仕事'}];let state=null;let pending=null;let selected=0;let question=null;let locked=false;
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}function clamp(x,a,b){return Math.min(b,Math.max(a,x))}function spec(m){return species.find(s=>s.id===m.species)||species[0]}function growthAptitude(m){const main=spec(m).growth;const sub=species.find(s=>s.id===m.subSpecies);return sub?main.map((v,i)=>v*.8+sub.growth[i]*.2):main}function growthAptitudeForFusion(a,b){return spec(a).growth.map((v,i)=>v*.8+spec(b).growth[i]*.2)}function yearWeek(w){return `${Math.floor(w/48)+1}年 ${Math.floor((w%48)/4)+1}月 第${w%4+1}週`}function stage(m){let r=m.age/m.lifespan;return r<.15?'幼年期':r<.35?'成長期':r<.65?'最盛期':r<.82?'成熟期':'晩年期'}function condition(m){const burden=Math.max(m.fatigue,m.stress)*.65+(m.fatigue+m.stress)*.175;return burden>=85?'危険':burden>=65?'要休養':burden>=40?'やや疲れ':'元気'}function growth(m){let r=m.age/m.lifespan;return r<.15?.55:r<.35?1:r<.65?1.5:r<.82?.9:.5}function log(t){state.logs.unshift(`${yearWeek(state.week)}：${t}`);state.logs=state.logs.slice(0,35)}function save(show=false){if(state){try{localStorage.setItem(KEY,JSON.stringify(state));if(show)alert('保存しました。')}catch(e){alert('保存に失敗しました。バックアップを利用してください。')}}}function init(){try{const raw=localStorage.getItem(KEY);if(raw){const v=JSON.parse(raw);if(v&&v.version===1&&Array.isArray(v.monsters)&&Number.isFinite(v.week)){state=v}}}catch(e){}render()}
-function makeMonster(id,name){const s=species.find(x=>x.id===id);return {id:Date.now()+Math.random(),species:id,name:name.trim().slice(0,16)||s.name,stats:s.growth.map(x=>Math.round(65+40*x+rand(0,25))),age:0,lifespan:s.life+rand(-12,12),fatigue:0,stress:0,loyalty:55,history:[],retired:false}}function start(){let name=document.getElementById('monsterName').value;state={version:1,week:0,money:5000,monsters:[makeMonster(species[selected].id,name)],active:0,logs:[],records:[],answers:{correct:0,total:0},level:document.getElementById('level').value};log('ファームが始まりました。新しいモンスターが誕生！');save();render()}
+// Birth-only lifespan compensation: 180 weeks => +150, 230 weeks => +0.
+// Largest-remainder apportionment preserves the exact total without biasing stat order.
+function birthStatBonus(s){
+  const total=Math.max(0,Math.round(3*(230-s.life)));
+  const sum=s.growth.reduce((a,b)=>a+b,0);
+  const raw=s.growth.map(a=>total*a/sum);
+  const bonus=raw.map(Math.floor);
+  let remainder=total-bonus.reduce((a,b)=>a+b,0);
+  const order=raw.map((v,i)=>({i,fraction:v-Math.floor(v)}))
+    .sort((a,b)=>b.fraction-a.fraction||a.i-b.i);
+  for(let i=0;i<remainder;i++)bonus[order[i].i]++;
+  return bonus;
+}
+function makeMonster(id,name){const s=species.find(x=>x.id===id),bonus=birthStatBonus(s);return {id:Date.now()+Math.random(),species:id,name:name.trim().slice(0,16)||s.name,stats:s.growth.map((x,i)=>Math.round(65+40*x+rand(0,25))+bonus[i]),age:0,lifespan:s.life+rand(-12,12),fatigue:0,stress:0,loyalty:55,history:[],retired:false}}function start(){let name=document.getElementById('monsterName').value;state={version:1,week:0,money:5000,monsters:[makeMonster(species[selected].id,name)],active:0,logs:[],records:[],answers:{correct:0,total:0},level:document.getElementById('level').value};log('ファームが始まりました。新しいモンスターが誕生！');save();render()}
 
 function renderNextGoals(m){
  const total=m.stats.reduce((a,b)=>a+b,0),rank=state.battleData?.rank||0;
@@ -147,11 +160,14 @@ const originalRender=render;
 render=function(){originalRender();if(state?.monsters[state.active]){const target=document.querySelector('#app .grid>div:last-child');if(target)target.insertAdjacentHTML('beforeend',battlePanel())}};
 function stopBattleClock(){if(battleTimer){clearInterval(battleTimer);battleTimer=null}}
 function startBattle(official){if(!state?.monsters[state.active]||battle)return;ensureBattleData();if(official&&!availableTournament())return;const m=state.monsters[state.active],d=state.battleData,rank=official?d.rank:Math.max(0,d.rank-1);const enemySpec=species[rand(0,species.length-1)];const tournamentStrengthRanges=[[80,120],[150,190],[230,270],[320,360],[430,470],[550,590]];const [minStrength,maxStrength]=tournamentStrengthRanges[Math.max(0,Math.min(5,rank))];const strength=rand(minStrength,maxStrength);const eStats=enemySpec.growth.map(x=>clamp(Math.round(strength*x+rand(-25,25)),50,950));battle={official,rank,enemy:{name:enemySpec.name,species:enemySpec.id,stats:eStats},hp:m.stats[0]+100,ehp:eStats[0]+100,maxhp:m.stats[0]+100,maxehp:eStats[0]+100,guts:50,eguts:45,time:90,distance:1,paused:false,logs:['試合開始！ 距離を調整して技を選ぼう。'],pendingSkill:null,finished:false,enemyCooldown:3,enemySkillIndex:0};if(official){d.lastTournamentWeek=state.week;save()}document.getElementById('modal').classList.add('wide');showBattle();battleTimer=setInterval(battleTick,1000)}
-function battleTick(){if(!battle||battle.finished||battle.paused)return;battle.time=Math.max(0,battle.time-1);battle.guts=Math.min(100,battle.guts+5);battle.eguts=Math.min(100,battle.eguts+6);battle.enemyCooldown=Math.max(0,(battle.enemyCooldown??3)-1);if(battle.enemyCooldown===0)enemyTurn();if(battle.hp<=0||battle.ehp<=0||battle.time<=0){finishBattle();return}showBattle()}
+function battleTick(){if(!battle||battle.finished||battle.paused)return;battle.time=Math.max(0,battle.time-1);battle.guts=gutsRegen(battle.guts,5,state.monsters[state.active]);battle.eguts=gutsRegen(battle.eguts,6,battle.enemy);battle.enemyCooldown=Math.max(0,(battle.enemyCooldown??3)-1);if(battle.enemyCooldown===0)enemyTurn();if(battle.hp<=0||battle.ehp<=0||battle.time<=0){finishBattle();return}showBattle()}
 function battleLog(s){battle.logs.unshift(s);battle.logs=battle.logs.slice(0,7)}
-function gutsAttackMultiplier(g){return .8+.004*clamp(Number(g)||0,0,100)}
+const gutsSpeciesTuning={rock:{regen:.80,power:1.30,hit:1.15},flare:{regen:.90,power:1.20,hit:1.10},aqua:{regen:1.05,power:1.00,hit:1.00},leaf:{regen:1.10,power:.95,hit:.975},ghost:{regen:1.15,power:.90,hit:.95},bolt:{regen:1.20,power:.85,hit:.925}};
+function gutsTuning(monster){return gutsSpeciesTuning[monster?.species]||{regen:1,power:1,hit:1}}
+function gutsRegen(current,base,monster){return Math.min(100,Math.round((current+base*gutsTuning(monster).regen)*1000)/1000)}
+function gutsAttackMultiplier(g,monster){return .8+.004*clamp(Number(g)||0,0,100)*gutsTuning(monster).power}
 function gutsDefenseMultiplier(g){return 1.2-.004*clamp(Number(g)||0,0,100)}
-function gutsAccuracyBonus(g){return (clamp(Number(g)||0,0,100)-50)*.001}
+function gutsAccuracyBonus(g,monster){return (clamp(Number(g)||0,0,100)-50)*.001*gutsTuning(monster).hit}
 function enemyTurn(){
  if(!battle||battle.finished||battle.paused)return;
  const m=state.monsters[state.active],e=battle.enemy;
@@ -168,13 +184,13 @@ function enemyTurn(){
  const attackGuts=battle.eguts; // 技の消費前のエナジーで攻撃補正を確定
  battle.eguts-=pick.cost;
  battle.enemyCooldown=pick.cooldown;
- const chance=clamp(.65+(e.stats[3]-m.stats[4])/1600+pick.accuracy+gutsAccuracyBonus(attackGuts),.15,.95);
+ const chance=clamp(.65+(e.stats[3]-m.stats[4])/1600+pick.accuracy+gutsAccuracyBonus(attackGuts,e),.15,.95);
  if(Math.random()>chance){battleLog(`${e.name}の${pick.name}は外れた！`);return}
- const dmg=Math.max(5,Math.round((22+battle.rank*12+e.stats[1]*.08)*pick.power*100/(100+m.stats[5]*.18)*gutsAttackMultiplier(attackGuts)*gutsDefenseMultiplier(battle.guts)));
+ const dmg=Math.max(5,Math.round((22+battle.rank*12+e.stats[1]*.08)*pick.power*100/(100+m.stats[5]*.18)*gutsAttackMultiplier(attackGuts,e)*gutsDefenseMultiplier(battle.guts)));
  battle.hp=Math.max(0,battle.hp-dmg);
  battleLog(`${e.name}の${pick.name}！ ${dmg}ダメージ。`);
 }
-function moveBattle(delta){if(!battle||battle.paused||battle.finished)return;battle.distance=clamp(battle.distance+delta,0,2);battle.guts=Math.min(100,battle.guts+3);showBattle()}
+function moveBattle(delta){if(!battle||battle.paused||battle.finished)return;battle.distance=clamp(battle.distance+delta,0,2);battle.guts=gutsRegen(battle.guts,3,state.monsters[state.active]);showBattle()}
 function useSkill(i){if(!battle||battle.paused||battle.finished)return;const sk=battleSkills[i];if(sk.range!==battle.distance||battle.guts<sk.cost)return;battle.paused=true;battle.pendingSkill=i;battle.attackGuts=battle.guts;question=makeQuestion(state.level);showBattleQuestion(sk)}
 function skillType(sk){return sk.kind===1?'ちから技':'かしこさ技'}
 function skillBadge(sk){return `<span class="skill-type ${sk.kind===1?'skill-power':'skill-wisdom'}">${skillType(sk)}</span>`}
@@ -188,7 +204,7 @@ function skillEffect(sk){
  return {type:'normal',mult:1};
 }
 function skillEffectLabel(sk){const x=skillEffect(sk);return x.type==='guts'?`エナジー↓${x.amount}`:x.type==='drain'?`HP吸収20%（上限${x.cap}）`:'通常攻撃'}
-function answerBattle(){if(!battle||battle.pendingSkill===null||!question)return;const field=document.getElementById('battleAnswer');if(!field||!field.value.trim())return;const val=parseMathNumber(field.value);if(!Number.isFinite(val))return;const correct=Math.abs(val-question.ans)<1e-8,sk=battleSkills[battle.pendingSkill],m=state.monsters[state.active],e=battle.enemy;state.answers.total++;if(correct)state.answers.correct++;battle.guts=Math.max(0,battle.guts-(correct?sk.cost:Math.ceil(sk.cost/2)));if(correct){const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=mathmonBattleHitProbability(m, e, sk, battle.attackGuts??battle.guts);if(Math.random()<hit){const attack=m.stats[sk.kind];const raw=Math.max(5,Math.round((tuned.power+attack*.16)*100/(100+e.stats[5]*.2)));const dmg=Math.min(battle.ehp,Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(battle.attackGuts??battle.guts)*gutsDefenseMultiplier(battle.eguts))));battle.ehp=Math.max(0,battle.ehp-dmg);let extra='';if(effect.type==='guts'&&battle.ehp>0){const taken=Math.min(battle.eguts,effect.amount);battle.eguts=Math.max(0,battle.eguts-taken);extra=` 敵のエナジー-${taken}！`;}if(effect.type==='drain'){const heal=Math.min(battle.maxhp-battle.hp,effect.cap,Math.floor(dmg*effect.rate));battle.hp+=heal;extra=` HPを${heal}回復！`;}battleLog(`${tuned.name}命中！ ${dmg}ダメージ！${extra}`)}else battleLog(`${tuned.name}は外れた！`)}else battleLog(`不正解（正解：${question.ans}）。技は失敗した。`);question=null;battle.pendingSkill=null;battle.attackGuts=null;battle.paused=false;save();if(battle.ehp<=0){finishBattle();return}showBattle()}
+function answerBattle(){if(!battle||battle.pendingSkill===null||!question)return;const field=document.getElementById('battleAnswer');if(!field||!field.value.trim())return;const val=parseMathNumber(field.value);if(!Number.isFinite(val))return;const correct=Math.abs(val-question.ans)<1e-8,sk=battleSkills[battle.pendingSkill],m=state.monsters[state.active],e=battle.enemy;state.answers.total++;if(correct)state.answers.correct++;battle.guts=Math.max(0,battle.guts-(correct?sk.cost:Math.ceil(sk.cost/2)));if(correct){const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=mathmonBattleHitProbability(m, e, sk, battle.attackGuts??battle.guts);if(Math.random()<hit){const attack=m.stats[sk.kind];const raw=Math.max(5,Math.round((tuned.power+attack*.16)*100/(100+e.stats[5]*.2)));const dmg=Math.min(battle.ehp,Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(battle.attackGuts??battle.guts,m)*gutsDefenseMultiplier(battle.eguts))));battle.ehp=Math.max(0,battle.ehp-dmg);let extra='';if(effect.type==='guts'&&battle.ehp>0){const taken=Math.min(battle.eguts,effect.amount);battle.eguts=Math.max(0,battle.eguts-taken);extra=` 敵のエナジー-${taken}！`;}if(effect.type==='drain'){const heal=Math.min(battle.maxhp-battle.hp,effect.cap,Math.floor(dmg*effect.rate));battle.hp+=heal;extra=` HPを${heal}回復！`;}battleLog(`${tuned.name}命中！ ${dmg}ダメージ！${extra}`)}else battleLog(`${tuned.name}は外れた！`)}else battleLog(`不正解（正解：${question.ans}）。技は失敗した。`);question=null;battle.pendingSkill=null;battle.attackGuts=null;battle.paused=false;save();if(battle.ehp<=0){finishBattle();return}showBattle()}
 
 function showBattle(){if(!battle||battle.finished)return;const m=state.monsters[state.active],b=battle,e=b.enemy,sp=spec(m),es=spec({species:e.species});modal(`<h2>${b.official?'🏆 公式大会':'⚔️ 練習試合'} — ${ranks[b.rank]}ランク</h2><div class="battle-top"><div><b>${safe(m.name)}</b><div class="battlebar"><div style="width:${100*b.hp/b.maxhp}%"></div></div><small>HP ${b.hp}/${b.maxhp}</small></div><div><b>${safe(e.name)}</b><div class="battlebar enemy"><div style="width:${100*b.ehp/b.maxehp}%"></div></div><small>HP ${b.ehp}/${b.maxehp}</small></div></div><div class="arena"><div class="fighters"><span>${sp.icon}</span><span>${es.icon}</span></div><div>距離：${['近距離','中距離','遠距離'][b.distance]}　⏱ 残り ${b.time}秒</div></div><p>エナジー：${b.guts}/100</p><div class="battlebar"><div style="width:${b.guts}%;background:#e4bd65"></div></div><div class="topbuttons"><button class="secondary" onclick="moveBattle(-1)" ${b.distance===0?'disabled':''}>近づく ◀</button><button class="secondary" onclick="moveBattle(1)" ${b.distance===2?'disabled':''}>▶ 離れる</button><button class="danger" onclick="forfeitBattle()">棄権</button></div><div class="battlebuttons">${battleSkills.map((sk,i)=>`<button onclick="useSkill(${i})" ${sk.range!==b.distance||b.guts<sk.cost?'disabled':''}>${safe(speciesSkillName(m,sk))}<br>${skillBadge(sk)}<br><small>G${sk.cost} / ${['近','中','遠'][sk.range]}距離 / 威力${speciesSkillStats(m,sk).power} / 命中${speciesSkillStats(m,sk).accuracy>=0?'+':''}${speciesSkillStats(m,sk).accuracy}</small></button>`).join('')}</div><p class="small muted">赤：ちから技（ちから参照）／青：かしこさ技（かしこさ参照）</p><h3>試合実況</h3><div class="battlefeed">${b.logs.map(x=>`<div>${safe(x)}</div>`).join('')}</div>`)}
 function finishBattle(forfeit=false){if(!battle||battle.finished)return;stopBattleClock();battle.finished=true;const b=battle,m=state.monsters[state.active];const win=!forfeit&&(b.ehp<=0||(b.hp>0&&b.time===0&&b.hp/b.maxhp>b.ehp/b.maxehp));let prize=0,rankup=false;if(b.official){ensureBattleData();const d=state.battleData;if(win){d.wins++;prize=prizes[b.rank];state.money+=prize;if(d.rank===b.rank&&d.rank<5){d.rank++;rankup=true}else if(d.rank===5&&!d.champions.includes(m.name)){d.champions.push(m.name)}}else d.losses++;log(`${ranks[b.rank]}ランク大会：${win?'勝利':'敗北'}${prize?'。賞金'+prize+'G':''}`);m.fatigue=clamp(m.fatigue+18,0,100);m.stress=clamp(m.stress+(win?5:12),0,100);advance()}save();battle=null;document.getElementById('modal').classList.remove('wide');modal(`<h2>${win?'🏆 勝利！':'💥 敗北'}</h2><p>${safe(m.name)} ${win?'が試合に勝利しました！':'は健闘しました。'}</p>${b.official?`<div class="notice">賞金：${prize.toLocaleString()} G${rankup?'\n次のランクに昇格！':''}</div>`:'<p class="muted">練習試合のため週・育成状態は変わりません。</p>'}<button onclick="closeModal();render()" style="width:100%">ファームに戻る</button>`)}
@@ -376,6 +392,15 @@ showBattle=function(){cupOldShowBattle();if(!battle||battle.finished)return;cons
 // Replace old stacked settlement wrappers: single payout, single week advance, per-individual records.
 finishBattle=function(forfeit=false){
  if(!battle||battle.finished)return;
+ // A time-limit tie is neither a win nor a loss. Keep the same opponent
+ // and tournament entry; do not advance the week or alter any records.
+ if(!forfeit&&battle.time<=0&&battle.hp>0&&battle.ehp>0&&
+    battle.hp*battle.maxehp===battle.ehp*battle.maxhp){
+  stopBattleClock();battle.paused=true;question=null;battle.pendingSkill=null;
+  document.getElementById('modal').classList.add('wide');
+  modal(`<h2>⚖️ 引き分け！</h2><p>制限時間終了時の残りHP割合が同じでした。</p><p>同じ相手と再試合を行います。勝敗記録・賞金・疲労・ストレス・育成週数は変わりません。</p><button onclick="replayDrawnBattle()" style="width:100%">同じ相手と再試合</button>`);
+  return;
+ }
  stopBattleClock();battle.finished=true;
  const b=battle,m=state?.monsters?.[state.active];if(!m){battle=null;return;}
  const win=!forfeit&&(b.ehp<=0||(b.hp>0&&b.time===0&&b.hp/b.maxhp>b.ehp/b.maxehp));
@@ -401,6 +426,20 @@ finishBattle=function(forfeit=false){
  modal(`<h2>${win?'🏆 勝利！':'💥 敗北'}</h2><p>${safe(title)}：${safe(m.name)} ${win?'が勝利しました！':'は健闘しました。'}</p>${official?`<div class="notice">賞金：${prize.toLocaleString()}G${rankup?' / 次のランクに昇格！':''}<br>疲労 ${win?'+12':'+18'} / ストレス ${win?'−10':'+10'} / 1週経過</div>`:'<p class="muted">週・育成状態は変わりません。</p>'}<button onclick="closeModal();render()" style="width:100%">ファームに戻る</button>`);
 };
 
+function replayDrawnBattle(){
+ if(!battle||battle.finished||battle.time>0||!battle.paused)return;
+ const m=state?.monsters?.[state.active];if(!m)return;
+ stopBattleClock();question=null;
+ Object.assign(battle,{
+  hp:m.stats[0]+100,ehp:battle.enemy.stats[0]+100,
+  maxhp:m.stats[0]+100,maxehp:battle.enemy.stats[0]+100,
+  guts:50,eguts:45,time:90,distance:1,paused:false,
+  logs:['再試合開始！ 同じ相手と決着をつけよう。'],
+  pendingSkill:null,attackGuts:null,finished:false,
+  enemyCooldown:3,enemySkillIndex:0
+ });
+ showBattle();battleTimer=setInterval(battleTick,1000);
+}
 // === Cross-device exhibition battles: isolated from official records and saves ===
 let qrGuest=null,qrDuel=null,qrDuelTimer=null;
 function qrSelf(){return state?.monsters?.[state.active]||null}
@@ -417,10 +456,19 @@ function qrStop(){if(qrDuelTimer){clearInterval(qrDuelTimer);qrDuelTimer=null}}
 function qrMoves(m){const unlocked=m.unlockedSkills||[0,2,4];return [0,1,2].map(range=>{const equipped=m.equippedSkills?.[range];if(unlocked.includes(equipped)&&battleSkills[equipped]?.range===range)return equipped;return unlocked.find(i=>battleSkills[i]?.range===range)}).filter(i=>i!==undefined)}
 function qrStart(mode){if(!qrGuest||!qrSelf())return;qrStop();const a=qrPack(qrSelf()),b=qrGuest;qrDuel={a,b,mode,ahp:a.a[0]+100,bhp:b.stats[0]+100,amax:a.a[0]+100,bmax:b.stats[0]+100,ag:50,bg:50,time:90,range:1,coolA:0,coolB:0,paused:false,logs:['対戦開始！'],ended:false};qrShow();qrDuelTimer=setInterval(qrTick,1000)}
 function qrLog(msg){qrDuel.logs.unshift(msg);qrDuel.logs=qrDuel.logs.slice(0,6)}
-function qrAttack(side,idx){const d=qrDuel;if(!d||d.ended)return false;const mine=side==='a',m=mine?{species:d.a.s,stats:d.a.a}:{species:d.b.species,stats:d.b.stats},enemy=mine?d.b.stats:d.a.a;const g=mine?d.ag:d.bg;const sk=battleSkills[idx];if(!sk||g<sk.cost)return false;const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=clamp(.72+tuned.accuracy/100+(m.stats[3]-enemy[4])/1600+gutsAccuracyBonus(g),.15,.98);if(mine)d.ag-=sk.cost;else d.bg-=sk.cost;const label=mine?d.a.n:d.b.name;if(Math.random()>hit){qrLog(`${label}の${tuned.name}は外れた`);return true}const raw=Math.max(5,Math.round((tuned.power+m.stats[sk.kind]*.16)*100/(100+enemy[5]*.2)));const targetG=mine?d.bg:d.ag;const dmg=Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(g)*gutsDefenseMultiplier(targetG)));if(mine)d.bhp=Math.max(0,d.bhp-dmg);else d.ahp=Math.max(0,d.ahp-dmg);if(effect.type==='guts'){if(mine)d.bg=Math.max(0,d.bg-effect.amount);else d.ag=Math.max(0,d.ag-effect.amount)}if(effect.type==='drain'){const heal=Math.min(effect.cap,Math.round(dmg*effect.rate));if(mine)d.ahp=Math.min(d.amax,d.ahp+heal);else d.bhp=Math.min(d.bmax,d.bhp+heal)}qrLog(`${label}の${tuned.name}！ ${dmg}ダメージ${effect.type==='guts'?' / エナジーダウン':effect.type==='drain'?' / HP吸収':''}`);return true}
+function qrAttack(side,idx){const d=qrDuel;if(!d||d.ended)return false;const mine=side==='a',m=mine?{species:d.a.s,stats:d.a.a}:{species:d.b.species,stats:d.b.stats},enemy=mine?d.b.stats:d.a.a;const g=mine?d.ag:d.bg;const sk=battleSkills[idx];if(!sk||g<sk.cost)return false;const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=clamp(.72+tuned.accuracy/100+(m.stats[3]-enemy[4])/1600+gutsAccuracyBonus(g,m),.15,.98);if(mine)d.ag-=sk.cost;else d.bg-=sk.cost;const label=mine?d.a.n:d.b.name;if(Math.random()>hit){qrLog(`${label}の${tuned.name}は外れた`);return true}const raw=Math.max(5,Math.round((tuned.power+m.stats[sk.kind]*.16)*100/(100+enemy[5]*.2)));const targetG=mine?d.bg:d.ag;const dmg=Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(g,m)*gutsDefenseMultiplier(targetG)));if(mine)d.bhp=Math.max(0,d.bhp-dmg);else d.ahp=Math.max(0,d.ahp-dmg);if(effect.type==='guts'){if(mine)d.bg=Math.max(0,d.bg-effect.amount);else d.ag=Math.max(0,d.ag-effect.amount)}if(effect.type==='drain'){const heal=Math.min(effect.cap,Math.round(dmg*effect.rate));if(mine)d.ahp=Math.min(d.amax,d.ahp+heal);else d.bhp=Math.min(d.bmax,d.bhp+heal)}qrLog(`${label}の${tuned.name}！ ${dmg}ダメージ${effect.type==='guts'?' / エナジーダウン':effect.type==='drain'?' / HP吸収':''}`);return true}
 function qrAi(side){const d=qrDuel,m=side==='a'?{unlockedSkills:d.a.u,equippedSkills:d.a.e}:{unlockedSkills:d.b.unlockedSkills,equippedSkills:d.b.equippedSkills},g=side==='a'?d.ag:d.bg;const available=qrMoves(m).filter(i=>battleSkills[i].cost<=g&&(side==='b'||battleSkills[i].range===d.range));if(!available.length)return;available.sort((x,y)=>{const a=battleSkills[x],b=battleSkills[y];return (b.power/(b.cost+12))-(a.power/(a.cost+12))});qrAttack(side,available[Math.floor(Math.random()*Math.min(2,available.length))])}
-function qrTick(){const d=qrDuel;if(!d||d.ended||d.paused)return;d.time--;d.ag=Math.min(100,d.ag+5);d.bg=Math.min(100,d.bg+6);d.coolA--;d.coolB--;if(d.mode==='auto'&&d.coolA<=0){qrAi('a');d.coolA=3}if(d.coolB<=0){qrAi('b');d.coolB=3}if(d.time<=0||d.ahp<=0||d.bhp<=0){qrEnd();return}qrShow()}
-function qrEnd(){const d=qrDuel;if(!d)return;d.ended=true;qrStop();const win=d.ahp/d.amax>d.bhp/d.bmax?'a':d.ahp/d.amax<d.bhp/d.bmax?'b':'draw';qrLog(win==='draw'?'引き分け！':`${win==='a'?d.a.n:d.b.name}の勝利！`);qrShow()}
+function qrTick(){const d=qrDuel;if(!d||d.ended||d.paused)return;d.time--;d.ag=gutsRegen(d.ag,5,{species:d.a.s});d.bg=gutsRegen(d.bg,6,{species:d.b.species});d.coolA--;d.coolB--;if(d.mode==='auto'&&d.coolA<=0){qrAi('a');d.coolA=3}if(d.coolB<=0){qrAi('b');d.coolB=3}if(d.time<=0||d.ahp<=0||d.bhp<=0){qrEnd();return}qrShow()}
+function qrEnd(){const d=qrDuel;if(!d)return;d.ended=true;qrStop();const win=d.ahp*d.bmax>d.bhp*d.amax?'a':d.ahp*d.bmax<d.bhp*d.amax?'b':'draw';d.timeDraw=win==='draw'&&d.time<=0&&d.ahp>0&&d.bhp>0;qrLog(win==='draw'?'引き分け！':`${win==='a'?d.a.n:d.b.name}の勝利！`);qrShow()}
+function qrReplayDraw(){
+ const d=qrDuel;if(!d||!d.ended||!d.timeDraw)return;
+ qrStop();Object.assign(d,{
+  ahp:d.amax,bhp:d.bmax,ag:50,bg:50,time:90,range:1,
+  coolA:0,coolB:0,paused:false,logs:['再試合開始！'],
+  ended:false,timeDraw:false,question:null,skill:null
+ });
+ qrShow();qrDuelTimer=setInterval(qrTick,1000);
+}
 function qrMove(delta){if(!qrDuel||qrDuel.ended||qrDuel.paused)return;qrDuel.range=clamp(qrDuel.range+delta,0,2);qrShow()}
 function qrManual(i){const d=qrDuel;if(!d||d.ended||d.paused||d.mode!=='manual'||battleSkills[i]?.range!==d.range||d.ag<battleSkills[i].cost)return;d.paused=true;const q=makeQuestion(state.level);d.question=q;d.skill=i;modal(`<h2>⚔️ ${safe(speciesSkillName({species:d.a.s},battleSkills[i]))}</h2><p>数学問題の回答中は時間停止</p><div class="question">${safe(q.text)}</div><input id="qrAnswer" type="text" inputmode="decimal" autocomplete="off" placeholder="答えを数字で入力"><button onclick="qrSubmit()">回答して攻撃</button><button class="secondary" onclick="qrMinus()">− マイナス</button><button class="secondary" onclick="qrCancelAnswer()">← 対戦画面に戻る</button>`)}
 function qrMinus(){const el=document.getElementById('qrAnswer');if(el)el.value=el.value.startsWith('-')?el.value.slice(1):'-'+el.value}
@@ -428,7 +476,7 @@ function qrSubmit(){const d=qrDuel;if(!d?.paused)return;const el=document.getEle
 function qrExitToMenu(){qrStop();qrDuel=null;closeModal();if(typeof mmSelectTab==='function')mmSelectTab('battle')}
 function qrCancelAnswer(){if(!qrDuel)return qrExitToMenu();qrDuel.paused=false;qrDuel.question=null;qrShow()}
 function qrQuit(){qrExitToMenu()}
-function qrShow(){const d=qrDuel;if(!d)return;const am={species:d.a.s},bm={species:d.b.species};const moves=qrMoves({unlockedSkills:d.a.u,equippedSkills:d.a.e});modal(`<h2>⚔️ QRモンスター対戦 ${d.mode==='auto'?'AI観戦':'手動操作'}</h2><p>${safe(d.a.n)} ${spec(am).icon} vs ${spec(bm).icon} ${safe(d.b.name)}</p><p>HP ${d.ahp}/${d.amax}　対　${d.bhp}/${d.bmax}</p><p>エナジー ${d.ag}　対　${d.bg}　残り ${d.time}秒</p><p>距離：${['近','中','遠'][d.range]}　${d.ended?'試合終了':''}</p>${d.mode==='manual'&&!d.ended?`<button class="secondary" onclick="qrMove(-1)">近づく</button><button class="secondary" onclick="qrMove(1)">離れる</button><div class="actions">${moves.filter(i=>battleSkills[i].range===d.range).map(i=>`<button onclick="qrManual(${i})" ${d.ag<battleSkills[i].cost?'disabled':''}>${safe(speciesSkillName(am,battleSkills[i]))} (エナジー${battleSkills[i].cost})</button>`).join('')||'<p>この距離にセットできる技がありません</p>'}</div>`:''}<div class="log">${d.logs.map(x=>`<p>${safe(x)}</p>`).join('')}</div><button class="secondary" onclick="qrQuit()">${d.ended?'閉じる':'対戦を終了'}</button>`)}
+function qrShow(){const d=qrDuel;if(!d)return;const am={species:d.a.s},bm={species:d.b.species};const moves=qrMoves({unlockedSkills:d.a.u,equippedSkills:d.a.e});modal(`<h2>⚔️ QRモンスター対戦 ${d.mode==='auto'?'AI観戦':'手動操作'}</h2><p>${safe(d.a.n)} ${spec(am).icon} vs ${spec(bm).icon} ${safe(d.b.name)}</p><p>HP ${d.ahp}/${d.amax}　対　${d.bhp}/${d.bmax}</p><p>エナジー ${d.ag}　対　${d.bg}　残り ${d.time}秒</p><p>距離：${['近','中','遠'][d.range]}　${d.ended?'試合終了':''}</p>${d.mode==='manual'&&!d.ended?`<button class="secondary" onclick="qrMove(-1)">近づく</button><button class="secondary" onclick="qrMove(1)">離れる</button><div class="actions">${moves.filter(i=>battleSkills[i].range===d.range).map(i=>`<button onclick="qrManual(${i})" ${d.ag<battleSkills[i].cost?'disabled':''}>${safe(speciesSkillName(am,battleSkills[i]))} (エナジー${battleSkills[i].cost})</button>`).join('')||'<p>この距離にセットできる技がありません</p>'}</div>`:''}<div class="log">${d.logs.map(x=>`<p>${safe(x)}</p>`).join('')}</div>${d.ended&&d.timeDraw?'<p class="notice">時間切れで引き分け。同じ相手と再試合できます。</p><button onclick="qrReplayDraw()">同じ相手と再試合</button>':''}<button class="secondary" onclick="qrQuit()">${d.ended?'閉じる':'対戦を終了'}</button>`)}
 
 </script><script>
 // Skill equipment and adventure scrolls. Save-compatible extension.
@@ -560,7 +608,7 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 /* UI patch 1.2.6: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.2.7';
+const UI_VERSION='1.2.10';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
@@ -663,13 +711,13 @@ wrap('beginExpedition','expeditionAnswer','finishExpedition');
 </script>
 
 <script>
-/* v1.2.6: battle hit chance and immediate condition refresh after using items. */
+/* v1.2.9: battle hit chance and immediate condition refresh after using items. */
 function mathmonBattleHitProbability(attacker, defender, skill, attackGuts) {
   const tuned=speciesSkillStats(attacker,skill);
   return clamp(
     .72+tuned.accuracy/100+
     (attacker.stats[3]-defender.stats[4])/1600+
-    gutsAccuracyBonus(attackGuts),
+    gutsAccuracyBonus(attackGuts,attacker),
     .15,.98
   );
 }
