@@ -546,10 +546,10 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 #mm-build-version{font-size:12px;color:#d5e4ee;white-space:nowrap;padding:4px 8px;border:1px solid #627785;border-radius:8px}
 </style>
 <script>
-/* UI patch 1.2.1: select Monster after every successful birth or activation. */
+/* UI patch 1.2.2: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.2.1';
+const UI_VERSION='1.2.2';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
@@ -576,4 +576,48 @@ function wrapSuccess(name){
 showVersion();
 })();
 </script>
-</body></html>
+<script>
+/* v1.2.2: concealed seven-tap auto-correct mode; normal answer handlers remain authoritative. */
+(function(){
+'use strict';
+const MODE_KEY='mathmon.champions.secretAutoCorrect';
+let enabled=false;
+try{enabled=localStorage.getItem(MODE_KEY)==='1'}catch(e){}
+let taps=0, lastTap=0;
+const title=document.querySelector('header h1.mathmon-brand');
+function notice(message){
+  let el=document.getElementById('mm-secret-notice');
+  if(!el){el=document.createElement('div');el.id='mm-secret-notice';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2939;color:white;padding:12px 20px;border-radius:12px;z-index:99999;font-weight:bold;box-shadow:0 4px 20px #0005;pointer-events:none';document.body.appendChild(el)}
+  el.textContent=message;
+  clearTimeout(notice.hide);
+  notice.hide=setTimeout(()=>{el.remove()},2000);
+}
+if(title){title.addEventListener('click',function(){
+  const now=Date.now();
+  if(now-lastTap>650)taps=0;
+  lastTap=now;
+  taps++;
+  if(taps>=7){taps=0;enabled=!enabled;try{localStorage.setItem(MODE_KEY,enabled?'1':'0')}catch(e){}notice(enabled?'裏モード ON':'裏モード OFF')}
+});}
+function autoAnswer(fieldId,finish){
+  if(!enabled||typeof question==='undefined'||!question||!Number.isFinite(question.ans))return;
+  const field=document.getElementById(fieldId);
+  if(!field)return;
+  field.value=String(question.ans);
+  finish();
+}
+function wrap(name,fieldId,finishName){
+  const original=window[name];
+  if(typeof original!=='function'||typeof window[finishName]!=='function')return;
+  window[name]=function(...args){
+    const result=original.apply(this,args);
+    if(enabled)autoAnswer(fieldId,()=>window[finishName]());
+    return result;
+  };
+}
+wrap('beginJob','answer','submitAnswer');
+wrap('useSkill','battleAnswer','answerBattle');
+wrap('beginTraining','trainingAnswer','finishTraining');
+wrap('beginExpedition','expeditionAnswer','finishExpedition');
+})();
+</script></body></html>
