@@ -4,7 +4,7 @@
 .battlebar{height:12px;background:#30444b;border-radius:12px;overflow:hidden;margin:6px 0}.battlebar>div{height:100%;background:#64c69b}.battlebar.enemy>div{background:#e37d6b}.arena{background:linear-gradient(#294653,#274c3d);border-radius:14px;padding:16px;text-align:center}.fighters{display:flex;justify-content:space-around;font-size:76px}.battlebuttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.battlebuttons button{font-size:14px}.battlefeed{max-height:110px;overflow:auto;font-size:13px;background:#142b35;padding:10px;border-radius:8px}.battle-top{display:grid;grid-template-columns:1fr 1fr;gap:14px}.rankline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0;padding:10px;background:#25424b;border-radius:9px}.modal.wide{width:min(100%,740px)}
 .skill-type{display:inline-block;border-radius:5px;padding:3px 7px;font-size:12px;font-weight:800;margin:4px 0}.skill-power{background:#8e4038;color:#fff0e9}.skill-wisdom{background:#255e93;color:#e9f7ff}.battlebuttons button{line-height:1.4}header .mathmon-brand{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.1;letter-spacing:.045em}header .mathmon-brand .mathmon-name{font-weight:900;font-size:clamp(19px,4vw,28px)}header .mathmon-brand .mathmon-champions{font-weight:900;font-size:clamp(14px,3vw,21px);color:#ffd36c}header .mathmon-brand small{font-size:11px;font-weight:500;letter-spacing:0;color:#d8e7f6;margin-top:4px}@media(max-width:520px){header .mathmon-brand small{font-size:10px}}
 </style><style>
-/* v1.2.5: compact fatigue/stress indicators in the Rest section. */
+/* v1.2.6: compact fatigue/stress indicators in the Rest section. */
 .mm-rest-condition{background:#1b3040;border-radius:9px;padding:10px 12px;display:grid;gap:9px;margin:0 0 12px}
 .mm-rest-condition-row{display:flex;align-items:center;gap:9px;min-width:0}
 .mm-rest-label{flex:0 0 64px;font-size:13px;font-weight:700;white-space:nowrap}
@@ -41,7 +41,7 @@ function renderNextGoals(m){
  else if(total>=1500)html+=`<p class="small muted">🔥 育成の中盤：修行で技を覚え、得意距離を伸ばそう。</p>`;
  return html;
 }
-function render(){const app=document.getElementById('app');if(!state){app.innerHTML=`<section class="panel"><h2>モンスターを誕生させよう</h2><p class="muted">毎週1回の仕事で数学問題に挑戦。能力を伸ばしながら寿命のあるモンスターを育てよう。</p><div class="six">${species.map((s,i)=>`<div class="choice ${selected===i?'active':''}" onclick="selectSpecies(${i})"><div class="emoji">${s.icon}</div><b>${s.name}</b><div class="small muted">${s.type}</div></div>`).join('')}</div><p><label for="monsterName">モンスターの名前</label><input id="monsterName" maxlength="16" placeholder="名前を入力（省略可）"></p><label for="level">数学の難易度</label><select id="level"><option value="elementary">小学生</option><option value="junior" selected>中学生</option><option value="high">高校生</option></select><button onclick="start()" style="width:100%">育成をはじめる</button></section>`;return}const m=state.monsters[state.active];if(!m){app.innerHTML=`<div class="panel"><h2>育成するモンスターがいません</h2><p>次のモンスターを迎えて、新しい世代の育成を始めましょう。</p><button onclick="newMonster()">新しいモンスターを迎える</button></div><div class="panel"><h2>育成記録</h2>${state.records.map(r=>`<p>${safe(r.name)} / ${safe(r.species)} / ${r.age}週 / 合計能力 ${r.total}</p>`).join('')||'まだ記録がありません'}</div>`;return}const s=spec(m);app.innerHTML=`<div class="grid"><div><section class="panel"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="pill">📅 ${yearWeek(state.week)}</span><span class="pill">💰 ${state.money.toLocaleString()} G</span></div><div class="ranch"><div class="monster">${s.icon}</div><h2 style="margin:0">${safe(m.name)}</h2><span class="small">${s.name} / ${stage(m)}</span></div><p class="small muted">年齢：${Math.floor(m.age/48)}歳 ${Math.floor(m.age%48/4)}か月 / 忠誠度 ${m.loyalty}</p>${names.map((n,i)=>`<div class="stat"><span>${n}</span><div class="track"><div class="fill" style="width:${m.stats[i]/999*100}%"></div></div><b>${m.stats[i]}</b></div>`).join('')}<div class="small muted">体調：<b>${condition(m)}</b></div><div class="small muted">数学の正答率 ${state.answers.total?Math.round(state.answers.correct/state.answers.total*100):0}%（${state.answers.correct}/${state.answers.total}）</div></section><section class="panel"><h2>ファームの記録</h2><div class="log">${state.logs.map(x=>`<p>${safe(x)}</p>`).join('')}</div></section></div><div><section class="panel"><h2>今週の育成</h2><p class="muted small">仕事を選ぶと数学問題が1問出題されます。正解で成長ボーナス！</p><div class="actions">${jobs.map((j,i)=>`<button class="secondary action" onclick="beginJob(${i})">${j.heavy?'🔥':'🌿'} ${j.name}<span>${j.desc} / 疲労+${j.fatigue}</span></button>`).join('')}</div></section><section class="panel"><h2>休養・生活</h2><div class="mm-rest-condition" aria-label="現在の疲労とストレス">${[['疲労',m.fatigue],['ストレス',m.stress]].map(([label,value])=>`<div class="mm-rest-condition-row"><span class="mm-rest-label">${label}</span><div class="mm-rest-track" role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}"><div class="mm-rest-fill ${value>=65?'mm-rest-warning':''}" style="width:${clamp(value,0,100)}%"></div></div><span class="mm-rest-value ${value>=65?'mm-rest-warning-text':''}">${value}/100</span></div>`).join('')}</div><div class="actions"><button onclick="rest()">💤 休養<span class="small" style="display:block">疲労-40、ストレス-20</span></button><button onclick="feed()">🍎 おやつ 300G<span class="small" style="display:block">ストレス-18、忠誠度+3 / 1週</span></button><button class="secondary" onclick="changeLevel()">📚 数学レベル変更</button><button class="secondary" onclick="showRecords()">🏅 育成記録</button></div><p class="small muted">行動1回で1週間経過。体調は疲労・ストレスから判定。疲労やストレスが高い状態では、寿命が通常より早く減少することがあります。</p></section><section class="panel"><h2>次の目標</h2>${renderNextGoals(m)}<button class="danger" onclick="retireAsk()">モンスターを引退させる</button></section></div></div>`}
+function render(){const app=document.getElementById('app');if(!state){app.innerHTML=`<section class="panel"><h2>モンスターを誕生させよう</h2><p class="muted">毎週1回の仕事で数学問題に挑戦。能力を伸ばしながら寿命のあるモンスターを育てよう。</p><div class="six">${species.map((s,i)=>`<div class="choice ${selected===i?'active':''}" onclick="selectSpecies(${i})"><div class="emoji">${s.icon}</div><b>${s.name}</b><div class="small muted">${s.type}</div></div>`).join('')}</div><p><label for="monsterName">モンスターの名前</label><input id="monsterName" maxlength="16" placeholder="名前を入力（省略可）"></p><label for="level">数学の難易度</label><select id="level"><option value="elementary">小学生</option><option value="junior" selected>中学生</option><option value="high">高校生</option></select><button onclick="start()" style="width:100%">育成をはじめる</button></section>`;return}const m=state.monsters[state.active];if(!m){app.innerHTML=`<div class="panel"><h2>育成するモンスターがいません</h2><p>次のモンスターを迎えて、新しい世代の育成を始めましょう。</p><button onclick="newMonster()">新しいモンスターを迎える</button></div><div class="panel"><h2>育成記録</h2>${state.records.map(r=>`<p>${safe(r.name)} / ${safe(r.species)} / ${r.age}週 / 合計能力 ${r.total}</p>`).join('')||'まだ記録がありません'}</div>`;return}const s=spec(m);app.innerHTML=`<div class="grid"><div><section class="panel"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="pill">📅 ${yearWeek(state.week)}</span><span class="pill">💰 ${state.money.toLocaleString()} G</span></div><div class="ranch"><div class="monster">${s.icon}</div><h2 style="margin:0">${safe(m.name)}</h2><span class="small">${s.name} / ${stage(m)}</span></div><p class="small muted">年齢：${Math.floor(m.age/48)}歳 ${Math.floor(m.age%48/4)}か月 / 忠誠度 ${m.loyalty}</p>${names.map((n,i)=>`<div class="stat"><span>${n}</span><div class="track"><div class="fill" style="width:${m.stats[i]/999*100}%"></div></div><b>${m.stats[i]}</b></div>`).join('')}<div class="small muted">体調：<b>${condition(m)}</b></div><div class="small muted">数学の正答率 ${state.answers.total?Math.round(state.answers.correct/state.answers.total*100):0}%（${state.answers.correct}/${state.answers.total}）</div></section><section class="panel"><h2>ファームの記録</h2><div class="log">${state.logs.map(x=>`<p>${safe(x)}</p>`).join('')}</div></section></div><div><section class="panel"><h2>今週の育成</h2><p class="muted small">仕事を選ぶと数学問題が1問出題されます。正解で成長ボーナス！</p><div class="actions">${jobs.map((j,i)=>`<button class="secondary action" onclick="beginJob(${i})">${j.heavy?'🔥':'🌿'} ${j.name}<span>${j.desc} / 疲労+${j.fatigue}</span></button>`).join('')}</div></section><section class="panel"><h2>休養・生活</h2><div class="mm-rest-condition" aria-label="現在の疲労とストレス">${[['疲労',m.fatigue],['ストレス',m.stress]].map(([label,value])=>`<div class="mm-rest-condition-row"><span class="mm-rest-label">${label}</span><div class="mm-rest-track" role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}"><div class="mm-rest-fill ${value>=65?'mm-rest-warning':''}" style="width:${clamp(value,0,100)}%"></div></div><span class="mm-rest-value ${value>=65?'mm-rest-warning-text':''}">${value}/100</span></div>`).join('')}</div><div class="actions"><button onclick="rest()">💤 休養<span class="small" style="display:block">疲労-40、ストレス-30</span></button><button onclick="feed()">🍎 おやつ 300G<span class="small" style="display:block">ストレス-18、忠誠度+3 / 1週</span></button><button class="secondary" onclick="changeLevel()">📚 数学レベル変更</button><button class="secondary" onclick="showRecords()">🏅 育成記録</button></div><p class="small muted">行動1回で1週間経過。体調は疲労・ストレスから判定。疲労やストレスが高い状態では、寿命が通常より早く減少することがあります。</p></section><section class="panel"><h2>次の目標</h2>${renderNextGoals(m)}<button class="danger" onclick="retireAsk()">モンスターを引退させる</button></section></div></div>`}
 function selectSpecies(i){selected=i;const v=document.getElementById('monsterName')?.value||'';const lev=document.getElementById('level')?.value||'junior';render();document.getElementById('monsterName').value=v;document.getElementById('level').value=lev}
 function modal(html){document.getElementById('modal').innerHTML=html;document.getElementById('overlay').classList.remove('hidden')}function closeModal(){document.getElementById('overlay').classList.add('hidden');document.getElementById('modal').innerHTML=''}
 function makeQuestion(level){
@@ -188,7 +188,7 @@ function skillEffect(sk){
  return {type:'normal',mult:1};
 }
 function skillEffectLabel(sk){const x=skillEffect(sk);return x.type==='guts'?`エナジー↓${x.amount}`:x.type==='drain'?`HP吸収20%（上限${x.cap}）`:'通常攻撃'}
-function answerBattle(){if(!battle||battle.pendingSkill===null||!question)return;const field=document.getElementById('battleAnswer');if(!field||!field.value.trim())return;const val=parseMathNumber(field.value);if(!Number.isFinite(val))return;const correct=Math.abs(val-question.ans)<1e-8,sk=battleSkills[battle.pendingSkill],m=state.monsters[state.active],e=battle.enemy;state.answers.total++;if(correct)state.answers.correct++;battle.guts=Math.max(0,battle.guts-(correct?sk.cost:Math.ceil(sk.cost/2)));if(correct){const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=clamp(.72+tuned.accuracy/100+(m.stats[3]-e.stats[4])/1600+gutsAccuracyBonus(battle.attackGuts??battle.guts),.15,.98);if(Math.random()<hit){const attack=m.stats[sk.kind];const raw=Math.max(5,Math.round((tuned.power+attack*.16)*100/(100+e.stats[5]*.2)));const dmg=Math.min(battle.ehp,Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(battle.attackGuts??battle.guts)*gutsDefenseMultiplier(battle.eguts))));battle.ehp=Math.max(0,battle.ehp-dmg);let extra='';if(effect.type==='guts'&&battle.ehp>0){const taken=Math.min(battle.eguts,effect.amount);battle.eguts=Math.max(0,battle.eguts-taken);extra=` 敵のエナジー-${taken}！`;}if(effect.type==='drain'){const heal=Math.min(battle.maxhp-battle.hp,effect.cap,Math.floor(dmg*effect.rate));battle.hp+=heal;extra=` HPを${heal}回復！`;}battleLog(`${tuned.name}命中！ ${dmg}ダメージ！${extra}`)}else battleLog(`${tuned.name}は外れた！`)}else battleLog(`不正解（正解：${question.ans}）。技は失敗した。`);question=null;battle.pendingSkill=null;battle.attackGuts=null;battle.paused=false;save();if(battle.ehp<=0){finishBattle();return}showBattle()}
+function answerBattle(){if(!battle||battle.pendingSkill===null||!question)return;const field=document.getElementById('battleAnswer');if(!field||!field.value.trim())return;const val=parseMathNumber(field.value);if(!Number.isFinite(val))return;const correct=Math.abs(val-question.ans)<1e-8,sk=battleSkills[battle.pendingSkill],m=state.monsters[state.active],e=battle.enemy;state.answers.total++;if(correct)state.answers.correct++;battle.guts=Math.max(0,battle.guts-(correct?sk.cost:Math.ceil(sk.cost/2)));if(correct){const tuned=speciesSkillStats(m,sk),effect=skillEffect(sk);const hit=mathmonBattleHitProbability(m, e, sk, battle.attackGuts??battle.guts);if(Math.random()<hit){const attack=m.stats[sk.kind];const raw=Math.max(5,Math.round((tuned.power+attack*.16)*100/(100+e.stats[5]*.2)));const dmg=Math.min(battle.ehp,Math.max(1,Math.round(raw*effect.mult*gutsAttackMultiplier(battle.attackGuts??battle.guts)*gutsDefenseMultiplier(battle.eguts))));battle.ehp=Math.max(0,battle.ehp-dmg);let extra='';if(effect.type==='guts'&&battle.ehp>0){const taken=Math.min(battle.eguts,effect.amount);battle.eguts=Math.max(0,battle.eguts-taken);extra=` 敵のエナジー-${taken}！`;}if(effect.type==='drain'){const heal=Math.min(battle.maxhp-battle.hp,effect.cap,Math.floor(dmg*effect.rate));battle.hp+=heal;extra=` HPを${heal}回復！`;}battleLog(`${tuned.name}命中！ ${dmg}ダメージ！${extra}`)}else battleLog(`${tuned.name}は外れた！`)}else battleLog(`不正解（正解：${question.ans}）。技は失敗した。`);question=null;battle.pendingSkill=null;battle.attackGuts=null;battle.paused=false;save();if(battle.ehp<=0){finishBattle();return}showBattle()}
 
 function showBattle(){if(!battle||battle.finished)return;const m=state.monsters[state.active],b=battle,e=b.enemy,sp=spec(m),es=spec({species:e.species});modal(`<h2>${b.official?'🏆 公式大会':'⚔️ 練習試合'} — ${ranks[b.rank]}ランク</h2><div class="battle-top"><div><b>${safe(m.name)}</b><div class="battlebar"><div style="width:${100*b.hp/b.maxhp}%"></div></div><small>HP ${b.hp}/${b.maxhp}</small></div><div><b>${safe(e.name)}</b><div class="battlebar enemy"><div style="width:${100*b.ehp/b.maxehp}%"></div></div><small>HP ${b.ehp}/${b.maxehp}</small></div></div><div class="arena"><div class="fighters"><span>${sp.icon}</span><span>${es.icon}</span></div><div>距離：${['近距離','中距離','遠距離'][b.distance]}　⏱ 残り ${b.time}秒</div></div><p>エナジー：${b.guts}/100</p><div class="battlebar"><div style="width:${b.guts}%;background:#e4bd65"></div></div><div class="topbuttons"><button class="secondary" onclick="moveBattle(-1)" ${b.distance===0?'disabled':''}>近づく ◀</button><button class="secondary" onclick="moveBattle(1)" ${b.distance===2?'disabled':''}>▶ 離れる</button><button class="danger" onclick="forfeitBattle()">棄権</button></div><div class="battlebuttons">${battleSkills.map((sk,i)=>`<button onclick="useSkill(${i})" ${sk.range!==b.distance||b.guts<sk.cost?'disabled':''}>${safe(speciesSkillName(m,sk))}<br>${skillBadge(sk)}<br><small>G${sk.cost} / ${['近','中','遠'][sk.range]}距離 / 威力${speciesSkillStats(m,sk).power} / 命中${speciesSkillStats(m,sk).accuracy>=0?'+':''}${speciesSkillStats(m,sk).accuracy}</small></button>`).join('')}</div><p class="small muted">赤：ちから技（ちから参照）／青：かしこさ技（かしこさ参照）</p><h3>試合実況</h3><div class="battlefeed">${b.logs.map(x=>`<div>${safe(x)}</div>`).join('')}</div>`)}
 function finishBattle(forfeit=false){if(!battle||battle.finished)return;stopBattleClock();battle.finished=true;const b=battle,m=state.monsters[state.active];const win=!forfeit&&(b.ehp<=0||(b.hp>0&&b.time===0&&b.hp/b.maxhp>b.ehp/b.maxehp));let prize=0,rankup=false;if(b.official){ensureBattleData();const d=state.battleData;if(win){d.wins++;prize=prizes[b.rank];state.money+=prize;if(d.rank===b.rank&&d.rank<5){d.rank++;rankup=true}else if(d.rank===5&&!d.champions.includes(m.name)){d.champions.push(m.name)}}else d.losses++;log(`${ranks[b.rank]}ランク大会：${win?'勝利':'敗北'}${prize?'。賞金'+prize+'G':''}`);m.fatigue=clamp(m.fatigue+18,0,100);m.stress=clamp(m.stress+(win?5:12),0,100);advance()}save();battle=null;document.getElementById('modal').classList.remove('wide');modal(`<h2>${win?'🏆 勝利！':'💥 敗北'}</h2><p>${safe(m.name)} ${win?'が試合に勝利しました！':'は健闘しました。'}</p>${b.official?`<div class="notice">賞金：${prize.toLocaleString()} G${rankup?'\n次のランクに昇格！':''}</div>`:'<p class="muted">練習試合のため週・育成状態は変わりません。</p>'}<button onclick="closeModal();render()" style="width:100%">ファームに戻る</button>`)}
@@ -557,10 +557,10 @@ app.replaceChildren(nav,pages);app.classList.add('mm-layout');if(!containers[act
 #mm-build-version{font-size:12px;color:#d5e4ee;white-space:nowrap;padding:4px 8px;border:1px solid #627785;border-radius:8px}
 </style>
 <script>
-/* UI patch 1.2.5: select Monster after every successful birth or activation. */
+/* UI patch 1.2.6: select Monster after every successful birth or activation. */
 (function(){
 'use strict';
-const UI_VERSION='1.2.5';
+const UI_VERSION='1.2.6';
 function showVersion(){
   let el=document.getElementById('mm-build-version');
   if(!el){el=document.createElement('span');el.id='mm-build-version';
@@ -633,7 +633,7 @@ wrap('beginExpedition','expeditionAnswer','finishExpedition');
 })();
 </script>
 <style>
-/* v1.2.5: iOS modal safe region. Mobile nav remains visible but never covers the modal. */
+/* v1.2.6: iOS modal safe region. Mobile nav remains visible but never covers the modal. */
 .overlay{z-index:40;box-sizing:border-box;min-height:0}
 .modal{box-sizing:border-box;min-height:0;max-height:100%;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .mm-skill-close{display:block;position:sticky;bottom:0;width:100%;z-index:2;margin-top:14px;box-shadow:0 -8px 16px #203943}
@@ -659,6 +659,55 @@ wrap('beginExpedition','expeditionAnswer','finishExpedition');
   observer.observe(document.getElementById('app'),{childList:true,subtree:false});
   updateModalSpace();
   window.addEventListener('load',updateModalSpace,{once:true});
+})();
+</script>
+
+<script>
+/* v1.2.6: battle hit chance and immediate condition refresh after using items. */
+function mathmonBattleHitProbability(attacker, defender, skill, attackGuts) {
+  const tuned=speciesSkillStats(attacker,skill);
+  return clamp(
+    .72+tuned.accuracy/100+
+    (attacker.stats[3]-defender.stats[4])/1600+
+    gutsAccuracyBonus(attackGuts),
+    .15,.98
+  );
+}
+(function(){
+  'use strict';
+  const previousShowBattle=window.showBattle;
+  window.showBattle=function(...args){
+    const result=previousShowBattle.apply(this,args);
+    if(!battle||battle.finished||!state)return result;
+    const m=state.monsters[state.active];
+    const enemy=battle.enemy;
+    const slots=skillSlots(m);
+    const buttons=document.querySelectorAll('#modal .battlebuttons button');
+    buttons.forEach((button,index)=>{
+      const skillIndex=slots[index];
+      if(skillIndex==null||!battleSkills[skillIndex])return;
+      const skill=battleSkills[skillIndex];
+      // answerBattle saves the pre-cost Guts in attackGuts, so the
+      // displayed percentage must also use the pre-cost value.
+      const chance=mathmonBattleHitProbability(m,enemy,skill,battle.guts);
+      const percent=(chance*100).toFixed(1);
+      const small=button.querySelector('small');
+      if(small){
+        small.innerHTML=small.innerHTML.replace(/命中[+-]?\d+(?=\s*\/|$)/,
+          '命中率 <strong>'+percent+'%</strong>');
+      }
+    });
+    return result;
+  };
+
+  const previousUseItem=window.useItem;
+  window.useItem=function(...args){
+    const result=previousUseItem.apply(this,args);
+    // Item use does not advance the week. Refresh the farm's condition
+    // indicators immediately while keeping the shop popup open.
+    if(typeof window.render==='function')window.render();
+    return result;
+  };
 })();
 </script>
 </body></html>
