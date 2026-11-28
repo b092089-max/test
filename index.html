@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>タクティクスじゃんけん v0.1.47</title>
+<title>タクティクスじゃんけん v0.1.48</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1020;--panel:#17223b;--panel2:#1d2b49;--line:#354667;--ink:#f3f7ff;--muted:#b5c3df;--gold:#f7c96f;--blue:#74b8ff;--red:#ff8b8d;--green:#72d6ad;--purple:#c7a1ff;--shadow:0 12px 40px #02081770}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;background:radial-gradient(ellipse at 50% -10%,#2b3f75 0,transparent 48%),radial-gradient(ellipse at 100% 65%,#282255 0,transparent 40%),#0b1020;color:var(--ink);line-height:1.55}
@@ -571,7 +571,7 @@ button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,inpu
 <body><main id="app" class="wrap"></main>
 <script>
 'use strict';
-const VERSION='0.1.47';
+const VERSION='0.1.48';
 const HANDS=[{label:'グー',emoji:'✊'},{label:'チョキ',emoji:'✌️'},{label:'パー',emoji:'✋'}];
 const RULES=[
  {id:'normal',name:'通常バトル',short:'通常',desc:'すべての数字をそのまま掛け算します。'},
@@ -1539,7 +1539,7 @@ function netApply(m){net.phase=m.phase;net.locked=false;net.pending=null;Object.
 function netStage(stage){net.phase++;net.commits.clear();net.reveals.clear();net.locked=false;net.pending=null;net.stage=stage;net.required=alivePlayers().map(p=>p.id);if(stage==='setup'){net.reserve={};for(const id of net.required)net.reserve[id]=state.drawPile.splice(0,net.required.length===4?1:2);state.clash=1;state.choiceIds=net.required.slice();}for(const p of net.peers)netSend(p,{t:'stage',phase:net.phase,s:netSnapshot(p.id,stage)});state.currentId=0;state.screen=net.required.includes(0)||!['setup','choose'].includes(stage)?stage:'net-wait';state.selection=null;state.selectedDraw=[];state.mode='move';state.handSelection=null;state.predictionDraft={};state.firstClashPending=false;if(stage==='setup')state.drawPile=net.reserve[0]||[];render();}
 readyTo=function(id,stage){if(net.active&&net.role==='host')netStage(stage);else oldReady(id,stage);};
 handoffTo=function(id,stage){if(net.active&&net.role==='host')netStage(stage);else oldHandoff(id,stage);};
-beginClash=function(){if(!net.active)return oldBegin();state.choiceIds=alivePlayers().map(p=>p.id);if(!hasNextClash())return startRound();netStage('choose');};
+beginClash=function(){if(!net.active)return oldBegin();const active=alivePlayers();if(active.length<=1){netStage('gameover');return;}if(state.clash>state.clashCap||active.some(p=>unused(p).length===0))return startRound();state.choiceIds=active.map(p=>p.id);netStage('choose');};
 async function netHash(x){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(x))))).map(x=>x.toString(16).padStart(2,'0')).join('');}
 async function netSubmit(){if(net.locked||net.broken)return;const p=player(net.id),stage=state.screen;if(stage==='choose'&&!unused(p).includes(state.handSelection))return;net.locked=true;const data=stage==='setup'?{board:p.board.slice(),redrawUsed:p.redrawUsed}:{choice:state.handSelection,predictions:clone(state.predictionDraft)};net.pending={data,nonce:Array.from(crypto.getRandomValues(new Uint32Array(4)))};const hash=await netHash(net.pending);state.screen='net-wait';render();const m={t:'commit',phase:net.phase,hash};if(net.role==='host')await netReceive({id:0},m);else netSend(net.peers[0],m);}
 async function netReceive(p,m){if(net.broken)return;if(net.role==='join'){if(m.t==='stage'){net.active=true;net.id=m.id??net.id;netApply(m);}else if(m.t==='id')net.id=m.id;else if(m.t==='reveal'&&m.phase===net.phase&&net.pending)netSend(p,{t:'value',phase:net.phase,value:net.pending});return;}if(m.t==='hello'&&!net.active){p.name=String(m.name||'参加者').slice(0,16);netSend(p,{t:'id',id:p.id});render();return;}if(!net.active||m.phase!==net.phase||!net.required.includes(p.id))return;if(m.t==='commit'&&!net.commits.has(p.id)&&/^[a-f0-9]{64}$/.test(m.hash)){net.commits.set(p.id,m.hash);if(net.commits.size===net.required.length){netAll({t:'reveal',phase:net.phase});if(net.required.includes(0))await netReceive({id:0},{t:'value',phase:net.phase,value:net.pending});}}else if(m.t==='value'&&net.commits.size===net.required.length&&!net.reveals.has(p.id)){if(await netHash(m.value)!==net.commits.get(p.id))throw Error('確定内容が一致しません');if(m.phase!==net.phase||net.reveals.has(p.id))return;net.reveals.set(p.id,m.value.data);if(net.reveals.size===net.required.length){for(const [id,d] of net.reveals){const q=player(id);if(net.stage==='setup'){if(!Array.isArray(d.board)||d.board.length!==9||d.board.some(x=>!Number.isInteger(x)||x<0||x>9))throw Error('配置不正');q.board=d.board;q.redrawUsed=d.redrawUsed;}else{if(!unused(q).includes(d.choice))throw Error('手の選択不正');q.choice=d.choice;q.predictions={};for(const other of alivePlayers())if(other.id!==id&&unused(other).includes(d.predictions?.[other.id]))q.predictions[other.id]=d.predictions[other.id];}}if(net.stage==='setup')netStage('choose');else{computeBattle();netStage('result');}}}}
